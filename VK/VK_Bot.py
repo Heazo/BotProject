@@ -5,7 +5,7 @@ from vk_api.longpoll import VkLongPoll, VkEventType
 
 from TimetableProvider.TimetableCreator import get_unique_rasp
 
-class VKbot:
+class VKbot_class:
     def __init__(self, m_token):
         self.vk_session = vk_api.VkApi(token=m_token)
         self.session = self.vk_session.get_api()
@@ -14,12 +14,12 @@ class VKbot:
 
 
     def sender(self, id, msg):
-        self.vk_session.method('messages.sendMessage', {"user_id" : id, "message" : msg, "random_id" : 0})
+        self.vk_session.method('messages.send', {"user_id" : id, "message" : msg, "random_id" : 0})
 
-    def send_rasp(self, id, msg):
-        get_unique_rasp()
-        #sender(id, msg)
-        print(self.i)
+    def send_rasp(self, id):
+        msg = get_unique_rasp()
+        self.sender(id, msg)
+        print(f"send_rasp...{msg}")
 
     def event_handler(self):
         for event in self.longpoll.listen():
@@ -28,7 +28,7 @@ class VKbot:
                     msg = event.text.lower()
                     id = event.user_id
                     if msg == "начать":
-                        self.sender(id, msg)
+                        self.sender(id, "Абиба абоба")
                     if msg == "/start":
                         self.sender(id, msg)
                     if msg == "/help":
@@ -38,4 +38,4 @@ class VKbot:
                     if msg == "/contact":
                         self.sender(id, msg)
                     if msg == "/today":
-                        self.send_rasp(id, msg)
+                        self.send_rasp(id)

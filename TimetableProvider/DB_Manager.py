@@ -11,5 +11,7 @@ def getRaspFromDB (date) -> list[tuple]:
     result = cur.execute("")
 
     con.close()
+
+    result = date   #Для тестов - удалить!
     return result
 
