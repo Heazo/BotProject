@@ -8,18 +8,24 @@ import requests
 from bs4 import BeautifulSoup
 
 from Models.session import Session
+from Models.group import Group
 
 class ParserNARFU:
-    def GetAllRasp(self, url: str) -> list[Session]:
+    def __init__(self):
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+
+    def get_all_rasp(self, url: str) -> list[Session]:
+        """Getting a full list of all session for 4 weeks"""
+
         #lite-mode; hard-mode; extra-mode; ultra-extra-mod | парсим один день, парсим неделю, парсим все доступные недели, парсим весь сайт
         print("requestNarfu")
         #создать таблицу соответствующих url адресов и групп
 
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-
-        response = requests.get(url, headers=headers)
+        #Сделать отдельным методом
+        ###########################################################################
+        response = requests.get(url, headers=self.headers)
         response.encoding = response.apparent_encoding
         html_result  = response.text
         soup = None
@@ -32,6 +38,7 @@ class ParserNARFU:
         else :
             print("Err get request: ", response.status_code)
             return
+        ###########################################################################
 
         # with open("rusNARFU.html", "w") as file:
         #     file.write(html_result)
@@ -79,6 +86,9 @@ class ParserNARFU:
                 )
         return sessions_list
 
+    def get_groups(self, url: str) -> list[Group]:
+
+        print()
 
 
 
