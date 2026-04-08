@@ -3,7 +3,7 @@
 #В последующем сделать парсер (отдельную функцию) по датам и группам, для динамического обновления БД во время работы. Естественно это надо сделать асинхронным
 #Спарсить номера всех групп и сопоставить с url адресами
 
-
+import os
 import requests
 from bs4 import BeautifulSoup
 
@@ -27,7 +27,7 @@ class ParserNARFU:
         # with open("rusNARFU.html", "w") as file:
         #     file.write(html_result)
 
-        soup = self.get_access(url)
+        soup, html_result = self.get_access(url)
 
         sessions_list = []
 
@@ -83,13 +83,13 @@ class ParserNARFU:
             soup = BeautifulSoup(html_result, 'html.parser')
             title = soup.title.text
             print("title: ", title)
-            return soup
+            return soup, html_result
         else :
             print("Err get request: ", response.status_code)
             return
 
-    def find_groups(self, url = "https://ruz.narfu.ru/"):       #-> list[Group]
-        soup = self.get_access(url)
+    def find_groups(self, url = "https://ruz.narfu.ru/")->list[Group]:       #-> list[Group]
+        soup, html_result = self.get_access(url)
 
         #institutions = soup.find_all('div', {"class": "hidden-xs col-sm-4 col-md-3 institution_button"})
 
@@ -97,19 +97,60 @@ class ParserNARFU:
 
         institutions_urls = []
         group_urls = []
+        groups = []
         for institution in institutions:
             institutions_urls.append(institution.get('href'))
         institutions_urls = list(set(institutions_urls))
 
-
-
         for institution_url in institutions_urls:
-            #insts_soup = self.get_access(url + institution_url)
-            print("")
+
+            insts_soup, html_result = self.get_access(url + institution_url)
+
+            group_buttons = insts_soup.find_all("div", {"class": "group_button"})
+            own_institution = insts_soup.find("h4", {"class": "visible-xs visible-sm"}).text
+
+            # file_name = own_institution + ".html"
+            # if os.path.exists(file_name):
+            #     print(f"Файл {file_name} уже существует")
+            #     with open(file_name, "r") as file:
+            #         file.read(html_result)
+            # else:
+            #     print(f"Файл {file_name} не найден, создаю...")
+            #     with open(file_name, "w") as file:
+            #         file.write(html_result)
 
 
 
-        return institutions_urls
+            for group_button in group_buttons:
+                own_url = group_button.find("a", {"class": "hidden-xs"}).get('href')
+                #own_group_num = group_button.find("span", {"class": "number"}).text
+                all_info = group_button.find("a", {"class": "hidden-xs"}).text
+
+                own_speciality = None
+                if all_info is not None:
+                    all_info = all_info.split()
+                else :
+                    continue
+                if len(all_info) <= 2:
+                    speciality = ""
+                    profile = ""
+                else:
+                    speciality = all_info[1]
+                    profile = all_info[2]
+                group_num = all_info[0]
+
+
+                groups.append(
+                    Group(
+                        url= own_url.strip(),
+                        group_num= group_num,
+                        speciality= speciality,
+                        profile= profile,
+                        institution= own_institution.strip()
+                    )
+                )
+
+        return groups
 
 
 

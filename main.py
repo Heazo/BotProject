@@ -18,8 +18,9 @@ def main():
     #     print("Дата: ", session.date)
     #     print("Номер пары: " ,session.num_session)
     #     print("Предмет: ", session.discipline)
-    urls = parser.find_groups()
-    print(urls)
+    groups = parser.find_groups()
+    for group in groups:
+        print(f"{group.speciality} ({group.group_num}): {group.url}")
 
 
 
