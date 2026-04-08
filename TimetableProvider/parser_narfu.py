@@ -23,25 +23,11 @@ class ParserNARFU:
         print("requestNarfu")
         #создать таблицу соответствующих url адресов и групп
 
-        #Сделать отдельным методом
-        ###########################################################################
-        response = requests.get(url, headers=self.headers)
-        response.encoding = response.apparent_encoding
-        html_result  = response.text
-        soup = None
-
-        if response.status_code == 200:
-            print("Successful get request: ", response.status_code)
-            soup = BeautifulSoup(html_result, 'html.parser')
-            title = soup.title.text
-            print("title: ", title)
-        else :
-            print("Err get request: ", response.status_code)
-            return
-        ###########################################################################
 
         # with open("rusNARFU.html", "w") as file:
         #     file.write(html_result)
+
+        soup = self.get_access(url)
 
         sessions_list = []
 
@@ -86,9 +72,44 @@ class ParserNARFU:
                 )
         return sessions_list
 
-    def get_groups(self, url: str) -> list[Group]:
+    def get_access(self, url: str):
+        response = requests.get(url, headers=self.headers)
+        response.encoding = response.apparent_encoding
+        html_result  = response.text
+        soup = None
 
-        print()
+        if response.status_code == 200:
+            print("Successful get request: ", response.status_code)
+            soup = BeautifulSoup(html_result, 'html.parser')
+            title = soup.title.text
+            print("title: ", title)
+            return soup
+        else :
+            print("Err get request: ", response.status_code)
+            return
+
+    def find_groups(self, url = "https://ruz.narfu.ru/"):       #-> list[Group]
+        soup = self.get_access(url)
+
+        #institutions = soup.find_all('div', {"class": "hidden-xs col-sm-4 col-md-3 institution_button"})
+
+        institutions = soup.select('a[href^="?groups&institution="]')
+
+        institutions_urls = []
+        group_urls = []
+        for institution in institutions:
+            institutions_urls.append(institution.get('href'))
+        institutions_urls = list(set(institutions_urls))
+
+
+
+        for institution_url in institutions_urls:
+            #insts_soup = self.get_access(url + institution_url)
+            print("")
+
+
+
+        return institutions_urls
 
 
 
