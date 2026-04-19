@@ -1,41 +1,58 @@
-#основное место бота с определениями команд, меню и так далее
-
-import vk_api
-from vk_api.longpoll import VkLongPoll, VkEventType
+import asyncio
 
 from TimetableProvider.TimetableCreator import get_unique_rasp
+from vkbottle import Bot
+
 
 class VKbot_class:
-    def __init__(self, m_token):
-        self.vk_session = vk_api.VkApi(token=m_token)
-        self.session = self.vk_session.get_api()
-        self.longpoll = VkLongPoll(self.vk_session)
+    def __init__(self, m_token: str):
+        self.bot = Bot(token=m_token)
+        self.api = self.bot.api
+        self._register_handlers()
         print("Initializing VK Bot\n")
 
+    async def sender(self, user_id: int, msg: str) -> None:
+        await self.api.messages.send(user_id=user_id, message=msg, random_id=0)
 
-    def sender(self, id, msg):
-        self.vk_session.method('messages.send', {"user_id" : id, "message" : msg, "random_id" : 0})
-
-    def send_rasp(self, id):
+    async def send_rasp(self, user_id: int) -> None:
         msg = get_unique_rasp()
-        self.sender(id, msg)
+        if isinstance(msg, list):
+            msg = "\n".join(str(item) for item in msg if item is not None)
+        elif msg is None:
+            msg = "Расписание на сегодня не найдено."
+        else:
+            msg = str(msg)
+
+        await self.sender(user_id, msg)
         print(f"send_rasp...{msg}")
 
-    def event_handler(self):
-        for event in self.longpoll.listen():
-            if event.type == VkEventType.MESSAGE_NEW:
-                if event.to_me:
-                    msg = event.text.lower()
-                    id = event.user_id
-                    if msg == "начать":
-                        self.sender(id, "Абиба абоба")
-                    if msg == "/start":
-                        self.sender(id, msg)
-                    if msg == "/help":
-                        self.sender(id, msg)
-                    if msg == "/about":
-                        self.sender(id, msg)
-                    if msg == "/contact":
-                        self.sender(id, msg)
-                    if msg == "/today":
-                        self.send_rasp(id)
+    def _register_handlers(self) -> None:
+        @self.bot.on.private_message(text=["начать", "Начать"])
+        async def start_russian(message):
+            await message.answer("Абиба абоба")
+
+        @self.bot.on.private_message(text="/start")
+        async def start_command(message):
+            await message.answer("/start")
+
+        @self.bot.on.private_message(text="/help")
+        async def help_command(message):
+            await message.answer("/help")
+
+        @self.bot.on.private_message(text="/about")
+        async def about_command(message):
+            await message.answer("/about")
+
+        @self.bot.on.private_message(text="/contact")
+        async def contact_command(message):
+            await message.answer("/contact")
+
+        @self.bot.on.private_message(text="/today")
+        async def today_command(message):
+            await self.send_rasp(message.from_id)
+
+    async def run(self) -> None:
+        await self.bot.run_polling()
+
+    def event_handler(self) -> None:
+        asyncio.run(self.run())
