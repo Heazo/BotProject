@@ -29,6 +29,13 @@ class ParserNARFU:
 
         soup, html_result = self.get_access(url)
 
+        navbar_brand = soup.find("a", {"class": "navbar-brand"})
+        if navbar_brand is None:
+            group_num = "Err"
+        else:
+            group_num = navbar_brand.find_all("span")[1].text.split()[0].strip()     #может быть не всегда так, надо будет проверить на других группах, но пока так (по крайней мере для 19439) работает
+
+
         sessions_list = []
 
         #Парсим все пары, что есть на странице
@@ -66,6 +73,7 @@ class ParserNARFU:
                         discipline_elem.text,
                         auditorium_elem.text if auditorium_elem else "",
                         group_elem.text if group_elem else "",
+                        group_num.strip() if group_num else "",
                         day_of_week,
                         date
                     )

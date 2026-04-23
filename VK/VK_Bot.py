@@ -1,5 +1,3 @@
-import asyncio
-
 from TimetableProvider.TimetableCreator import get_unique_rasp
 from vkbottle import Bot
 
@@ -51,8 +49,5 @@ class VKbot_class:
         async def today_command(message):
             await self.send_rasp(message.from_id)
 
-    async def run(self) -> None:
-        await self.bot.run_polling()
-
     def event_handler(self) -> None:
-        asyncio.run(self.run())
+        self.bot.run_forever()
