@@ -130,27 +130,42 @@ class ParserNARFU:
 
 
             for group_button in group_buttons:
-                own_url = group_button.find("a", {"class": "hidden-xs"}).get('href')
+                own_url = group_button.find("a", {"class": "hidden-xs"}).get('href').strip()
+                own_url = url + own_url
                 #own_group_num = group_button.find("span", {"class": "number"}).text
-                all_info = group_button.find("a", {"class": "hidden-xs"}).text
+                all_info = group_button.find("a", {"class": "hidden-xs"})
 
-                own_speciality = None
-                if all_info is not None:
-                    all_info = all_info.split()
-                else :
-                    continue
-                if len(all_info) <= 2:
+                group_num = all_info.find("span", {"class": "number"}).text.strip()
+
+                if all_info:
+                    for content in all_info.contents:
+                        if isinstance(content, str): 
+                            text = content.strip()
+                            if text:
+                                speciality = ' '.join(text.split())
+                                break
+                if not speciality:
                     speciality = ""
-                    profile = ""
-                else:
-                    speciality = all_info[1]
-                    profile = all_info[2]
-                group_num = all_info[0]
+                
+                profile = ""
+
+                # own_speciality = None
+                # if all_info is not None:
+                #     all_info = all_info.split()
+                # else :
+                #     continue
+                # if len(all_info) <= 2:
+                #     speciality = ""
+                #     profile = ""
+                # else:
+                #     speciality = all_info[1]
+                #     profile = all_info[2]
+                # group_num = all_info[0]
 
 
                 groups.append(
                     Group(
-                        url= own_url.strip(),
+                        url= own_url,
                         group_num= group_num,
                         speciality= speciality,
                         profile= profile,

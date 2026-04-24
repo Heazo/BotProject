@@ -2,12 +2,37 @@ from VK.VK_Bot import VKbot_class
 #from VK.VK_Bot2 import VKbot_class
 from tokens import vk_token
 from TimetableProvider.parser_narfu import ParserNARFU
+from TimetableProvider.DB_Manager import DB_Manager
 
 
 
 def main():
-    vkbot = VKbot_class(vk_token)
-    vkbot.event_handler()
+    db_manager = DB_Manager(
+        host="localhost",
+        port=5432,
+        dbname="studies_db",
+        user="postgres",
+        password="13372281337"
+    )
+    parser = ParserNARFU()
+
+    
+    #groups = parser.find_groups()
+    #db_manager.insertGroups(groups)
+
+    #sessions = parser.get_all_rasp("https://ruz.narfu.ru/?timetable&group=19439")
+    #db_manager.insertSessions(sessions)
+
+    # groups2 = db_manager.getGroupsFromDB()
+    # for group in groups2:
+    #     print(f"{group.speciality} ({group.group_num}): {group.url}")
+
+#    sessions = db_manager.insertSessions()   #для тестов - удалить!
+#    for session in sessions:
+#         print(session)
+
+    #vkbot = VKbot_class(vk_token)
+    #vkbot.event_handler()
 
     # parser = ParserNARFU()
     # sessions = parser.get_all_rasp("https://ruz.narfu.ru/?timetable&group=19439")
