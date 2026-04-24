@@ -1,5 +1,5 @@
 from TimetableProvider.TimetableCreator import get_unique_rasp
-from vkbottle import Bot
+from vkbottle import Bot, Keyboard, Text
 
 
 class VKbot_class:
@@ -24,10 +24,16 @@ class VKbot_class:
         await self.sender(user_id, msg)
         print(f"send_rasp...{msg}")
 
+    def get_keyboard(self):
+        keyboard = Keyboard(one_time=False, inline=False)
+        keyboard.add(Text("Начать"))
+        return keyboard
+
     def _register_handlers(self) -> None:
         @self.bot.on.private_message(text=["начать", "Начать"])
         async def start_russian(message):
-            await message.answer("Абиба абоба")
+            kb = self.get_keyboard()
+            await message.answer("Абиба абоба", keyboard=kb)
 
         @self.bot.on.private_message(text="/start")
         async def start_command(message):
