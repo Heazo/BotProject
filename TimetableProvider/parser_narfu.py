@@ -49,7 +49,7 @@ class ParserNARFU:
             day_of_week = parts[0].strip()
             date = parts[1].strip()
 
-            sessions = day.select('div[class^="timetable_sheet"]')
+            sessions = day.select('div[class^="timetable_sheet hidden-xs"]')    #возможно будет смысл переделать на "timetable_sheet_xs visible-xs"
 
             for session in sessions:
 
@@ -60,6 +60,10 @@ class ParserNARFU:
                 auditorium_elem = session.find('span', {"class": "auditorium"})
                 group_elem = session.find('span', {"class": "group"})
 
+                if auditorium_elem is not None:
+                    auditorium_elem = auditorium_elem.text.strip()
+                    auditorium_elem = ' '.join(auditorium_elem.split())
+
                 # Пропускаем если нет важных элементов
                 if not all([num_elem, time_elem, discipline_elem]):
                     # print(f"None session")
@@ -68,10 +72,10 @@ class ParserNARFU:
                 sessions_list.append(
                     Session(
                         num_elem.text,
-                        time_elem.text,
+                        time_elem.text.strip(),
                         kind_elem.text if kind_elem else "",
                         discipline_elem.text,
-                        auditorium_elem.text if auditorium_elem else "",
+                        auditorium_elem,
                         group_elem.text if group_elem else "",
                         group_num.strip() if group_num else "",
                         day_of_week,

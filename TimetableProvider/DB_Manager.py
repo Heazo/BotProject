@@ -48,11 +48,6 @@ class DB_Manager:
     ###Защитить от дубликатов!!!
 
     def insertSessions(self, sessions: list[Session]):
-        if self.con:
-            print("Database is connected.")
-        else:
-            print("Error connecting to database")
-            return
 
         cur = self.con.cursor()
 
@@ -77,11 +72,6 @@ class DB_Manager:
         self.con.commit()
         cur.close()
 
-    def __del__(self):
-        if self.con:
-            self.con.close()
-            print("Database connection closed.")
-
     def insertGroups(self, groups: list[Group]):
         if not self.con:
             print("Error connecting to database")
@@ -100,4 +90,24 @@ class DB_Manager:
 
         self.con.commit()
         cur.close()
+
+    def insertUserAndGroup(self, user_id: str, group_num: str):
+        cur = self.con.cursor()
+        #Переименовать с vk_id на user_id в БД!!!
+        insert_query = """
+            INSERT INTO users 
+                (vk_id, group_num)
+            VALUES (%s, %s)
+        """ 
+        cur.execute(insert_query,(user_id, group_num))
+        self.con.commit()
+        cur.close()
+    
+
+    def __del__(self):
+        if self.con:
+            self.con.close()
+            print("Database connection closed.")
+
+
     

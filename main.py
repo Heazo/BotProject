@@ -14,7 +14,7 @@ def main():
         user="postgres",
         password="13372281337"
     )
-    parser = ParserNARFU()
+    #parser = ParserNARFU()
 
     
     #groups = parser.find_groups()
@@ -22,6 +22,8 @@ def main():
 
     #sessions = parser.get_all_rasp("https://ruz.narfu.ru/?timetable&group=19439")
     #db_manager.insertSessions(sessions)
+
+    db_manager.insertUserAndGroup("Test", "151412") #Запись пользователей и их групп
 
     # groups2 = db_manager.getGroupsFromDB()
     # for group in groups2:
@@ -38,11 +40,14 @@ def main():
     # sessions = parser.get_all_rasp("https://ruz.narfu.ru/?timetable&group=19439")
     # print("Количество пар всего: ",len(sessions))
     # for session in sessions:
+    #     print("-----------------------------------------------------------------")
     #     print("Дата: ", session.date)
     #     print("Номер пары: " ,session.num_session)
     #     print("Подгруппа (поток): ", session.group_thread)
     #     print("Номер группы: ", session.group_num)
     #     print("Предмет: ", session.discipline)
+    #     print("Аудитория: ", session.auditorium)
+    #     print("-----------------------------------------------------------------")
     #groups = parser.find_groups()
     #for group in groups:
     #    print(f"{group.speciality} ({group.group_num}): {group.url}")
