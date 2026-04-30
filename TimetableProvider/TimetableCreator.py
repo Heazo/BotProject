@@ -9,9 +9,11 @@ from TimetableProvider.parser_narfu import ParserNARFU
 
 
 def create_unique_rasp():
-    #date = datetime.now().strftime("%d.%m.%Y")
-    #db_rasp = getRaspFromDB()
+    date = datetime.now().strftime("%d.%m.%Y")
+    #
     db_rasp = None
+    #db_rasp = getRaspFromDB()
+
     # if db_rasp is None:
     #     print("No Rasp Err\n")
     #     db_rasp = ""

@@ -3,7 +3,7 @@ from VK.VK_Bot import VKbot_class
 from tokens import vk_token
 from TimetableProvider.parser_narfu import ParserNARFU
 from TimetableProvider.DB_Manager import DB_Manager
-
+from datetime import datetime
 
 
 def main():
@@ -24,6 +24,15 @@ def main():
     #db_manager.insertSessions(sessions)
 
     db_manager.insertUserAndGroup("Test", "151412") #Запись пользователей и их групп
+    
+    date = datetime.now().strftime("%d.%m.%Y")
+    sessions = db_manager.getSessionsFromDB(date)
+    if sessions is not None:
+        for session in sessions:
+            print(session["time_session"], "\n", session["kind_of_work"], "\n", session["discipline"], "\n", session["auditorium"], "\n=============================================")
+
+    else: 
+        print(f"Расписание на {date} не найдено!")
 
     # groups2 = db_manager.getGroupsFromDB()
     # for group in groups2:
