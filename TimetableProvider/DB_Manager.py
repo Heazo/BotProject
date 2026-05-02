@@ -30,6 +30,7 @@ class DB_Manager:
                     user=user,
                     password=password)
                 print("Database is connected.")
+
             except Exception as e:
                 print(f"Error connecting to database: {e}")
                 self.con = None
@@ -128,6 +129,8 @@ class DB_Manager:
         finally:
             if cur:
                 cur.close()
+
+        return True
     
 
     def __del__(self):

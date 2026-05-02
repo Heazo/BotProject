@@ -12,7 +12,7 @@ def main():
         port=5432,
         dbname="studies_db",
         user="postgres",
-        password="13372281337"
+        password="VvSilv25042026sql"
     )
     #parser = ParserNARFU()
 
@@ -23,16 +23,16 @@ def main():
     #sessions = parser.get_all_rasp("https://ruz.narfu.ru/?timetable&group=19439")
     #db_manager.insertSessions(sessions)
 
-    db_manager.insertUserAndGroup("Test", "151412") #Запись пользователей и их групп
+    #db_manager.insertUserAndGroup("Test", "151412") #Запись пользователей и их групп
     
-    date = datetime.now().strftime("%d.%m.%Y")
-    sessions = db_manager.getSessionsFromDB(date)
-    if sessions is not None:
-        for session in sessions:
-            print(session["time_session"], "\n", session["kind_of_work"], "\n", session["discipline"], "\n", session["auditorium"], "\n=============================================")
-
-    else: 
-        print(f"Расписание на {date} не найдено!")
+    # date = datetime.now().strftime("%d.%m.%Y")
+    # sessions = db_manager.getSessionsFromDB(date)
+    # if sessions is not None:
+    #     for session in sessions:
+    #         print(session["time_session"], "\n", session["kind_of_work"], "\n", session["discipline"], "\n", session["auditorium"], "\n=============================================")
+    #
+    # else:
+    #     print(f"Расписание на {date} не найдено!")
 
     # groups2 = db_manager.getGroupsFromDB()
     # for group in groups2:
@@ -42,8 +42,8 @@ def main():
 #    for session in sessions:
 #         print(session)
 
-    #vkbot = VKbot_class(vk_token)
-    #vkbot.event_handler()
+    vkbot = VKbot_class(vk_token, db_manager)
+    vkbot.event_handler()
 
     # parser = ParserNARFU()
     # sessions = parser.get_all_rasp("https://ruz.narfu.ru/?timetable&group=19439")
@@ -65,3 +65,5 @@ def main():
 
 if __name__ == '__main__':
    main()
+
+
