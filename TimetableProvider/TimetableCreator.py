@@ -4,12 +4,20 @@ from datetime import datetime
 from html import parser
 
 from TimetableProvider.parser_narfu import ParserNARFU
-#from .DB_Manager import getRaspFromDB
+from TimetableProvider.DB_Manager import DB_Manager
 
 
 
-def create_unique_rasp():
+def create_unique_rasp(db_manager: DB_Manager) -> list[str]:
     date = datetime.now().strftime("%d.%m.%Y")
+    sessions = db_manager.getSessionsFromDB(date)
+    if sessions is not None:
+        rasp = []
+        for session in sessions:
+            rasp.append(f"{session['time_session']} \n {session['kind_of_work']} \n {session['discipline']} \n {session['auditorium']}")
+        return rasp
+    else:
+        return ["Расписание на сегодня не найдено."]
     #
     db_rasp = None
     #db_rasp = getRaspFromDB()
@@ -34,7 +42,7 @@ def create_unique_rasp():
     return db_rasp
 
 
-def get_unique_rasp() -> list[str]:
+def get_unique_rasp(db_manager: DB_Manager) -> list[str]:
     return create_unique_rasp()
 
 

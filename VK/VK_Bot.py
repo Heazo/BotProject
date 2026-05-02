@@ -4,7 +4,7 @@ from vkbottle import Bot, Keyboard, Text
 
 
 class VKbot_class:
-    def __init__(self, m_token: str, db_manager):
+    def __init__(self, m_token: str, db_manager: DB_Manager):
         self.bot = Bot(token=m_token)
         self.api = self.bot.api
         self.db = db_manager
@@ -15,7 +15,7 @@ class VKbot_class:
         await self.api.messages.send(user_id=user_id, message=msg, random_id=0)
 
     async def send_rasp(self, user_id: int) -> None:
-        msg = get_unique_rasp()
+        msg = get_unique_rasp(self.db)
         if isinstance(msg, list):
             msg = "\n".join(str(item) for item in msg if item is not None)
         elif msg is None:
