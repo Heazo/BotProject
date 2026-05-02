@@ -43,7 +43,7 @@ def create_unique_rasp(db_manager: DB_Manager) -> list[str]:
 
 
 def get_unique_rasp(db_manager: DB_Manager) -> list[str]:
-    return create_unique_rasp()
+    return create_unique_rasp(db_manager)
 
 
     # Для запросов по дням недели
