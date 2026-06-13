@@ -1,8 +1,8 @@
 #будет получать дату (например завтрашнюю) по которой будет делать запрос в БД и возвращать список кортежей
 import psycopg2
 from psycopg2.extras import RealDictCursor
-import Models.session as Session
-import Models.group as Group
+from Models.session import Session
+from Models.group import Group
 
 class DB_Manager:
     def __init__(self, host, port, dbname, user, password):
@@ -48,6 +48,29 @@ class DB_Manager:
         cur.close()
 
         return result
+    
+    def getGroupsFromDB(self) -> list[Group]:
+        cur = self.con.cursor()
+
+        result = cur.execute("""SELECT * FROM public.groups""")
+        result = cur.fetchall()
+        cur.close()
+
+        groups = []
+        for row in result:
+            group = Group(
+                group_num=row[0],
+                speciality=row[1],
+                profile=row[2],
+                url=row[3],
+                institution=row[4]
+            )
+            groups.append(group)
+
+        return groups
+    
+    def F1(self):
+        print("F1 !!!!!!!!!!!!!!")
     
     ###Защитить от дубликатов!!!
 

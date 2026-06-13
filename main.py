@@ -12,16 +12,29 @@ def main():
         port=5432,
         dbname="studies_db",
         user="postgres",
-        password="VvSilv25042026sql"
+        password="13372281337"
     )
-    #parser = ParserNARFU()
-
+    parser = ParserNARFU()
+    #13372281337
     
     #groups = parser.find_groups()
     #db_manager.insertGroups(groups)
 
-    #sessions = parser.get_all_rasp("https://ruz.narfu.ru/?timetable&group=19439")
-    #db_manager.insertSessions(sessions)
+    sessions = parser.get_all_rasp("https://ruz.narfu.ru/?timetable&group=19439")
+    db_manager.insertSessions(sessions)
+
+    #Парсим пары для всех групп из БД начиная с определённой группы
+    # kostil = False
+    # groups = db_manager.getGroupsFromDB()
+    # for group in groups:
+    #     #print(f"Группа: {group.group_num}  {group.url}")
+    #     if group.group_num != "521222" and not kostil:
+    #         continue
+    #     else:
+    #        kostil = True 
+    #     sessions = parser.get_all_rasp(group.url)
+    #     db_manager.insertSessions(sessions)
+
 
     #db_manager.insertUserAndGroup("Test", "151412") #Запись пользователей и их групп
     
@@ -42,11 +55,11 @@ def main():
 #    for session in sessions:
 #         print(session)
 
-    vkbot = VKbot_class(vk_token, db_manager)
-    vkbot.event_handler()
+    #vkbot = VKbot_class(vk_token, db_manager)
+    #vkbot.event_handler()
 
     # parser = ParserNARFU()
-    # sessions = parser.get_all_rasp("https://ruz.narfu.ru/?timetable&group=19439")
+    # sessions = parser.get_all_rasp("https://ruz.narfu.ru/?timetable&group=20219")   #https://ruz.narfu.ru/?timetable&group=20219    #https://ruz.narfu.ru/?timetable&group=19439
     # print("Количество пар всего: ",len(sessions))
     # for session in sessions:
     #     print("-----------------------------------------------------------------")

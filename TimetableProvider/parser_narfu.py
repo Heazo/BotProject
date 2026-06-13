@@ -28,12 +28,17 @@ class ParserNARFU:
         #     file.write(html_result)
 
         soup, html_result = self.get_access(url)
+       
+        title = soup.find("title").text
+        group_num = title.replace("Группа ", "").replace(". Расписание САФУ","")
 
-        navbar_brand = soup.find("a", {"class": "navbar-brand"})
-        if navbar_brand is None:
-            group_num = "Err"
-        else:
-            group_num = navbar_brand.find_all("span")[1].text.split()[0].strip()     #может быть не всегда так, надо будет проверить на других группах, но пока так (по крайней мере для 19439) работает
+
+
+        # navbar_brand = soup.find("a", {"class": "navbar-brand"})
+        # if navbar_brand is None:
+        #     group_num = "Err"
+        # else:
+        #     group_num = navbar_brand.find_all("span")[1].text.split()[0].strip()     #может быть не всегда так, надо будет проверить на других группах, но пока так (по крайней мере для 19439) работает
 
 
         sessions_list = []
@@ -139,7 +144,7 @@ class ParserNARFU:
                 #own_group_num = group_button.find("span", {"class": "number"}).text
                 all_info = group_button.find("a", {"class": "hidden-xs"})
 
-                group_num = all_info.find("span", {"class": "number"}).text.strip()
+                group_num = all_info.find("span", {"class": "number"}).text.strip()     #.text.split()[0].strip()
 
                 if all_info:
                     for content in all_info.contents:
