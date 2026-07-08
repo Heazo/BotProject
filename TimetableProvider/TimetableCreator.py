@@ -9,7 +9,9 @@ from TimetableProvider.DB_Manager import DB_Manager
 
 
 def create_unique_rasp(db_manager: DB_Manager) -> list[str]:
-    date = datetime.now().strftime("%d.%m.%Y")
+    # date = datetime.now().strftime("%d.%m.%Y")
+    my_date = datetime(2026, 4, 20)
+    date = my_date.strftime("%d.%m.%Y")
     sessions = db_manager.getSessionsFromDB(date)
     if sessions is not None:
         rasp = []

@@ -1,6 +1,7 @@
+from TG.TG_Bot import TelegramBotClass
 from VK.VK_Bot import VKbot_class
 #from VK.VK_Bot2 import VKbot_class
-from tokens import vk_token
+from tokens import vk_token, tg_token
 from TimetableProvider.parser_narfu import ParserNARFU
 from TimetableProvider.DB_Manager import DB_Manager
 from datetime import datetime
@@ -12,16 +13,16 @@ def main():
         port=5432,
         dbname="studies_db",
         user="postgres",
-        password="13372281337"
+        password="VvSilv25042026sql"
     )
-    parser = ParserNARFU()
+    #parser = ParserNARFU()
     #13372281337
     
     #groups = parser.find_groups()
     #db_manager.insertGroups(groups)
 
-    sessions = parser.get_all_rasp("https://ruz.narfu.ru/?timetable&group=19439")
-    db_manager.insertSessions(sessions)
+    #sessions = parser.get_all_rasp("https://ruz.narfu.ru/?timetable&group=19439")
+    #db_manager.insertSessions(sessions)
 
     #Парсим пары для всех групп из БД начиная с определённой группы
     # kostil = False
@@ -36,16 +37,18 @@ def main():
     #     db_manager.insertSessions(sessions)
 
 
-    #db_manager.insertUserAndGroup("Test", "151412") #Запись пользователей и их групп
+    db_manager.insertUserAndGroup("Test", "151412") #Запись пользователей и их групп
     
-    # date = datetime.now().strftime("%d.%m.%Y")
-    # sessions = db_manager.getSessionsFromDB(date)
-    # if sessions is not None:
-    #     for session in sessions:
-    #         print(session["time_session"], "\n", session["kind_of_work"], "\n", session["discipline"], "\n", session["auditorium"], "\n=============================================")
-    #
-    # else:
-    #     print(f"Расписание на {date} не найдено!")
+    #date = datetime.now().strftime("%d.%m.%Y")
+    my_date = datetime(2026, 4, 20)
+    date = my_date.strftime("%d.%m.%Y")
+    sessions = db_manager.getSessionsFromDB(date)
+    if sessions is not None:
+        for session in sessions:
+            print(session["time_session"], "\n", session["kind_of_work"], "\n", session["discipline"], "\n", session["auditorium"], "\n=============================================")
+
+    else:
+        print(f"Расписание на {date} не найдено!")
 
     # groups2 = db_manager.getGroupsFromDB()
     # for group in groups2:
@@ -55,8 +58,11 @@ def main():
 #    for session in sessions:
 #         print(session)
 
-    #vkbot = VKbot_class(vk_token, db_manager)
-    #vkbot.event_handler()
+    # vkbot = VKbot_class(vk_token, db_manager)
+    # vkbot.event_handler()
+
+    tgbot = TelegramBotClass(tg_token, db_manager)
+    tgbot.run()
 
     # parser = ParserNARFU()
     # sessions = parser.get_all_rasp("https://ruz.narfu.ru/?timetable&group=20219")   #https://ruz.narfu.ru/?timetable&group=20219    #https://ruz.narfu.ru/?timetable&group=19439
