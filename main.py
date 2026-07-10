@@ -40,12 +40,12 @@ def main():
     db_manager.insertUserAndGroup("Test", "151412") #Запись пользователей и их групп
     
     #date = datetime.now().strftime("%d.%m.%Y")
-    my_date = datetime(2026, 4, 20)
+    my_date = datetime(2026, 4, 21)
     date = my_date.strftime("%d.%m.%Y")
     sessions = db_manager.getSessionsFromDB(date)
     if sessions is not None:
         for session in sessions:
-            print(session["time_session"], "\n", session["kind_of_work"], "\n", session["discipline"], "\n", session["auditorium"], "\n=============================================")
+            print(session["time_session"], "\n", session["num_session"], ". ", session["kind_of_work"], "\n", session["discipline"], "\n", session["auditorium"], "\n=============================================", sep="")
 
     else:
         print(f"Расписание на {date} не найдено!")

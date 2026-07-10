@@ -10,13 +10,30 @@ from TimetableProvider.DB_Manager import DB_Manager
 
 def create_unique_rasp(db_manager: DB_Manager) -> list[str]:
     # date = datetime.now().strftime("%d.%m.%Y")
-    my_date = datetime(2026, 4, 20)
+    my_date = datetime(2026, 4, 21)
     date = my_date.strftime("%d.%m.%Y")
     sessions = db_manager.getSessionsFromDB(date)
     if sessions is not None:
         rasp = []
+        num_emojis = {
+            "1": "1️⃣",
+            "2": "2️⃣",
+            "3": "3️⃣",
+            "4": "4️⃣",
+            "5": "5️⃣",
+            "6": "6️⃣",
+            "7": "7️⃣"
+        }
+
         for session in sessions:
-            rasp.append(f"{session['time_session']} \n {session['kind_of_work']} \n {session['discipline']} \n {session['auditorium']}")
+            num_type = num_emojis.get(session['num_session'], "▫️")
+
+            formatted_session = (
+                f"{num_type}  {session['time_session']}  [{session['kind_of_work']}]\n"
+                f"   📖 {session['discipline']}\n"
+                f"   🏫 {session['auditorium']}\n\n"
+            )
+            rasp.append(formatted_session)
         return rasp
     else:
         return ["Расписание на сегодня не найдено."]
