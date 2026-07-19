@@ -1,6 +1,6 @@
-#Будет создавать индивидуальное росписание, обращаясь к DB_Manager
+#Будет создавать индивидуальное расписание, обращаясь к DB_Manager
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from html import parser
 
 from TimetableProvider.parser_narfu import ParserNARFU
@@ -8,11 +8,14 @@ from TimetableProvider.DB_Manager import DB_Manager
 
 
 
-def create_unique_rasp(db_manager: DB_Manager) -> list[str]:
-    # date = datetime.now().strftime("%d.%m.%Y")
+def create_unique_rasp(db_manager: DB_Manager, day_offset=0) -> list[str]:
+
+    # datetime.now()
     my_date = datetime(2026, 4, 21)
-    date = my_date.strftime("%d.%m.%Y")
-    sessions = db_manager.getSessionsFromDB(date)
+    # date = my_date.strftime("%d.%m.%Y")
+    target_date = my_date + timedelta(days=day_offset)
+    date_str = target_date.strftime("%d.%m.%Y")
+    sessions = db_manager.getSessionsFromDB(date_str)
     if sessions is not None:
         rasp = []
         num_emojis = {
@@ -34,9 +37,25 @@ def create_unique_rasp(db_manager: DB_Manager) -> list[str]:
                 f"   🏫 {session['auditorium']}\n\n"
             )
             rasp.append(formatted_session)
-        return rasp
+
+        # Добавляем заголовок с датой
+        day_names = {
+            0: "сегодня",
+            1: "завтра",
+            -1: "вчера"
+        }
+        day_name = day_names.get(day_offset, target_date.strftime("%d.%m.%Y"))
+
+        header = f"📅 Расписание на {day_name} ({date_str}):\n\n"
+        return [header + "\n".join(rasp)]
     else:
-        return ["Расписание на сегодня не найдено."]
+        day_names = {
+            0: "сегодня",
+            1: "завтра",
+            -1: "вчера"
+        }
+        day_name = day_names.get(day_offset, target_date.strftime("%d.%m.%Y"))
+        return [f"Расписание на {day_name} не найдено."]
     #
     db_rasp = None
     #db_rasp = getRaspFromDB()
@@ -61,8 +80,8 @@ def create_unique_rasp(db_manager: DB_Manager) -> list[str]:
     return db_rasp
 
 
-def get_unique_rasp(db_manager: DB_Manager) -> list[str]:
-    return create_unique_rasp(db_manager)
+def get_rasp_for_day(db_manager: DB_Manager, day_offset) -> list[str]:
+    return create_unique_rasp(db_manager, day_offset)
 
 
     # Для запросов по дням недели

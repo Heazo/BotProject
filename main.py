@@ -1,5 +1,5 @@
 from TG.TG_Bot import TelegramBotClass
-from VK.VK_Bot import VKbot_class
+#!!!from VK.VK_Bot import VKbot_class
 #from VK.VK_Bot2 import VKbot_class
 from tokens import vk_token, tg_token
 from TimetableProvider.parser_narfu import ParserNARFU
