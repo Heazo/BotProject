@@ -14,17 +14,27 @@ class VKbot_class:
     async def sender(self, user_id: int, msg: str) -> None:
         await self.api.messages.send(user_id=user_id, message=msg, random_id=0)
 
-    async def send_rasp(self, user_id: int) -> None:
-        msg = get_rasp_for_day(self.db, self.)
+    async def send_rasp_today(self, user_id: int) -> None:
+        msg = get_rasp_for_day(self.db, day_offset=0)
         if isinstance(msg, list):
             msg = "\n".join(str(item) for item in msg if item is not None)
         elif msg is None:
             msg = "Расписание на сегодня не найдено."
         else:
             msg = str(msg)
-
         await self.sender(user_id, msg)
-        print(f"send_rasp...{msg}")
+        print(f"send_rasp_today...{msg}")
+
+    async def send_rasp_tomorrow(self, user_id: int) -> None:
+        msg = get_rasp_for_day(self.db, day_offset=1)
+        if isinstance(msg, list):
+            msg = "\n".join(str(item) for item in msg if item is not None)
+        elif msg is None:
+            msg = "Расписание на завтра не найдено."
+        else:
+            msg = str(msg)
+        await self.sender(user_id, msg)
+        print(f"send_rasp_tomorrow...{msg}")
 
     def get_keyboard(self):
         keyboard = Keyboard(one_time=False, inline=False)
@@ -38,7 +48,7 @@ class VKbot_class:
             kb = self.get_keyboard()
             await message.answer("Привет!", keyboard=kb)
 
-        @self.bot.on.private_message(text="/поиск <group_num>")
+        @self.bot.on.private_message(text="/search <group_num>")
         async def search_handler(message, group_num: str):
             user_id = str(message.from_id)
             result = db.insertUserAndGroup(user_id, group_num)
@@ -73,7 +83,11 @@ class VKbot_class:
 
         @self.bot.on.private_message(text="/today")
         async def today_command(message):
-            await self.send_rasp(message.from_id)
+            await self.send_rasp_today(message.from_id)
+
+        @self.bot.on.private_message(text="/tomorrow")
+        async def tomorrow_command(message):
+            await self.send_rasp_tomorrow(message.from_id)
 
     def event_handler(self) -> None:
         self.bot.run_forever()
