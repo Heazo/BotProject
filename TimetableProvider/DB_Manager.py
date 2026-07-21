@@ -5,7 +5,15 @@ from Models.session import Session
 from Models.group import Group
 
 class DB_Manager:
+    """This class provides simple methods for database management.
+
+    With this class you can get sessions, groups, also insert them and more.
+    You can see usage example on the GitHub wiki.
+    """
+
     def __init__(self, host, port, dbname, user, password):
+        """Create DB_Manager and connect to the database"""
+
             try:
                 self.con = psycopg2.connect(
                     host=host,
