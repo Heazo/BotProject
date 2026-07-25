@@ -1,0 +1,14 @@
+Index: VK/VK_Bot2.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>#основное место бота с определениями команд, меню и так далее\r\n\r\nfrom vkbottle.bot import Bot, Message\r\n\r\nfrom tokens import vk_token\r\nfrom TimetableProvider.TimetableCreator import get_unique_rasp\r\n\r\nbot = Bot(token=vk_token)\r\n\r\n@bot.on.private_message(text=\"начать\")\r\nasync def handle_start(message: Message):\r\n    await message.answer(\"Абиба абоба\")\r\n\r\n@bot.on.private_message(text=\"/start\")\r\nasync def handle_start_cmd(message: Message):\r\n    await message.answer(\"/start\")\r\n\r\n@bot.on.private_message(text=\"/help\")\r\nasync def handle_help(message: Message):\r\n    await message.answer(\"/help\")\r\n\r\n@bot.on.private_message(text=\"/about\")\r\nasync def handle_about(message: Message):\r\n    await message.answer(\"/about\")\r\n\r\n@bot.on.private_message(text=\"/contact\")\r\nasync def handle_contact(message: Message):\r\n    await message.answer(\"/contact\")\r\n\r\n@bot.on.private_message(text=\"/today\")\r\nasync def handle_today(message: Message):\r\n    msg = get_unique_rasp()\r\n    await message.answer(msg)\r\n    print(f\"send_rasp...{msg}\")\r\n\r\n
+===================================================================
+diff --git a/VK/VK_Bot2.py b/VK/VK_Bot2.py
+--- a/VK/VK_Bot2.py	(revision 30acd316c13d43a2b025e2cf5c0eba55dbbde6fd)
++++ b/VK/VK_Bot2.py	(date 1775809350842)
+@@ -33,3 +33,5 @@
+     await message.answer(msg)
+     print(f"send_rasp...{msg}")
+ 
++if __name__ == "__main__":
++    bot.run_forever()

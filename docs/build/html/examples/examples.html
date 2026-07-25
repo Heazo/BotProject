@@ -1,0 +1,224 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Примеры &mdash; документация Polaris </title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=372fde1a"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/translations.js?v=cd1d70c9"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="../genindex.html" />
+    <link rel="search" title="Поиск" href="../search.html" />
+    <link rel="prev" title="Polaris documentation" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Polaris
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Примеры</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#db-manager-py">Использвание модуля DB_Manager.py</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Получаем группы из БД и выводим на экран некоторые их поля</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Запись пользователей и их групп</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">Получаем расписание на определенную дату</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#parser-narfu-py">Использвание модуля parser_narfu.py</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id5">Получаем расспинание одной из групп и записываем в базу данных</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">Пример того как можно выводить полученные пары в консоль</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id7">Очень кривой пример как можно спарсить пары вообще для всех групп</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Polaris</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Примеры</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/examples/examples.rst.txt" rel="nofollow"> Просмотреть исходный код страницы</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="id1">
+<h1>Примеры<a class="headerlink" href="#id1" title="Ссылка на этот заголовок"></a></h1>
+<section id="db-manager-py">
+<h2>Использвание модуля DB_Manager.py<a class="headerlink" href="#db-manager-py" title="Ссылка на этот заголовок"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">TimetableProvider.DB_Manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">DB_Manager</span>
+
+    <span class="c1">#Инициализация</span>
+    <span class="n">db_manager</span> <span class="o">=</span> <span class="n">DB_Manager</span><span class="p">(</span>
+    <span class="n">host</span><span class="o">=</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span>
+    <span class="n">port</span><span class="o">=</span><span class="mi">5432</span><span class="p">,</span>
+    <span class="n">dbname</span><span class="o">=</span><span class="s2">&quot;studies_db&quot;</span><span class="p">,</span>
+    <span class="n">user</span><span class="o">=</span><span class="s2">&quot;postgres&quot;</span><span class="p">,</span>
+    <span class="n">password</span><span class="o">=</span><span class="s2">&quot;13372281337&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<section id="id2">
+<h3>Получаем группы из БД и выводим на экран некоторые их поля<a class="headerlink" href="#id2" title="Ссылка на этот заголовок"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">groups2</span> <span class="o">=</span> <span class="n">db_manager</span><span class="o">.</span><span class="n">getGroupsFromDB</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">groups2</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">group</span><span class="o">.</span><span class="n">speciality</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">group</span><span class="o">.</span><span class="n">group_num</span><span class="si">}</span><span class="s2">): </span><span class="si">{</span><span class="n">group</span><span class="o">.</span><span class="n">url</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="id3">
+<h3>Запись пользователей и их групп<a class="headerlink" href="#id3" title="Ссылка на этот заголовок"></a></h3>
+<p>Используется для записи новых пользователей в БД, или изменения группы пользователя
+.. code-block:: python</p>
+<blockquote>
+<div><p>db_manager.insertUserAndGroup(«Test», «151412»)</p>
+</div></blockquote>
+</section>
+<section id="id4">
+<h3>Получаем расписание на определенную дату<a class="headerlink" href="#id4" title="Ссылка на этот заголовок"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">#date = datetime.now().strftime(&quot;%d.%m.%Y&quot;)</span>
+<span class="n">my_date</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2026</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">21</span><span class="p">)</span>
+<span class="n">date</span> <span class="o">=</span> <span class="n">my_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2">.%m.%Y&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Дата: &quot;</span><span class="p">,</span><span class="n">date</span><span class="p">)</span>
+<span class="n">sessions</span> <span class="o">=</span> <span class="n">db_manager</span><span class="o">.</span><span class="n">getSessionsFromDB</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">sessions</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">session</span> <span class="ow">in</span> <span class="n">sessions</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">session</span><span class="p">[</span><span class="s2">&quot;time_session&quot;</span><span class="p">],</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">session</span><span class="p">[</span><span class="s2">&quot;num_session&quot;</span><span class="p">],</span> <span class="s2">&quot;. &quot;</span><span class="p">,</span> <span class="n">session</span><span class="p">[</span><span class="s2">&quot;kind_of_work&quot;</span><span class="p">],</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">session</span><span class="p">[</span><span class="s2">&quot;discipline&quot;</span><span class="p">],</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">session</span><span class="p">[</span><span class="s2">&quot;auditorium&quot;</span><span class="p">],</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">=============================================&quot;</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+<span class="k">else</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Расписание на </span><span class="si">{</span><span class="n">date</span><span class="si">}</span><span class="s2"> не найдено!&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="parser-narfu-py">
+<h2>Использвание модуля parser_narfu.py<a class="headerlink" href="#parser-narfu-py" title="Ссылка на этот заголовок"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">TimetableProvider.parser_narfu</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParserNARFU</span>
+<span class="c1">#Инициализация</span>
+<span class="n">parser</span> <span class="o">=</span> <span class="n">ParserNARFU</span><span class="p">()</span>
+
+<span class="c1">#Получаем все группы с сайта и записываем их в БД</span>
+<span class="n">groups</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">find_groups</span><span class="p">()</span>
+<span class="n">db_manager</span><span class="o">.</span><span class="n">insertGroups</span><span class="p">(</span><span class="n">groups</span><span class="p">)</span>
+</pre></div>
+</div>
+<section id="id5">
+<h3>Получаем расспинание одной из групп и записываем в базу данных<a class="headerlink" href="#id5" title="Ссылка на этот заголовок"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sessions</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">get_all_rasp</span><span class="p">(</span><span class="s2">&quot;https://ruz.narfu.ru/?timetable&amp;group=19439&quot;</span><span class="p">)</span>
+<span class="n">db_manager</span><span class="o">.</span><span class="n">insertSessions</span><span class="p">(</span><span class="n">sessions</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="id6">
+<h3>Пример того как можно выводить полученные пары в консоль<a class="headerlink" href="#id6" title="Ссылка на этот заголовок"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sessions</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">get_all_rasp</span><span class="p">(</span><span class="s2">&quot;https://ruz.narfu.ru/?timetable&amp;group=19439&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Количество пар всего: &quot;</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">sessions</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">session</span> <span class="ow">in</span> <span class="n">sessions</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-----------------------------------------------------------------&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Дата: &quot;</span><span class="p">,</span> <span class="n">session</span><span class="o">.</span><span class="n">date</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Номер пары: &quot;</span> <span class="p">,</span><span class="n">session</span><span class="o">.</span><span class="n">num_session</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Подгруппа (поток): &quot;</span><span class="p">,</span> <span class="n">session</span><span class="o">.</span><span class="n">group_thread</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Номер группы: &quot;</span><span class="p">,</span> <span class="n">session</span><span class="o">.</span><span class="n">group_num</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Предмет: &quot;</span><span class="p">,</span> <span class="n">session</span><span class="o">.</span><span class="n">discipline</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Аудитория: &quot;</span><span class="p">,</span> <span class="n">session</span><span class="o">.</span><span class="n">auditorium</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-----------------------------------------------------------------&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="id7">
+<h3>Очень кривой пример как можно спарсить пары вообще для всех групп<a class="headerlink" href="#id7" title="Ссылка на этот заголовок"></a></h3>
+<p>Кривой потому что сайт блокируает слишком частые запросы и весь бот вылетает с ошибкой, по этому приходится каждый раз начинайть парс с группы на которой вылетело</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">kostil</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">groups</span> <span class="o">=</span> <span class="n">db_manager</span><span class="o">.</span><span class="n">getGroupsFromDB</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">groups</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">group</span><span class="o">.</span><span class="n">group_num</span> <span class="o">!=</span> <span class="s2">&quot;521222&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">kostil</span><span class="p">:</span>
+        <span class="k">continue</span>
+    <span class="k">else</span><span class="p">:</span>
+       <span class="n">kostil</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="n">sessions</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">get_all_rasp</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+    <span class="n">db_manager</span><span class="o">.</span><span class="n">insertSessions</span><span class="p">(</span><span class="n">sessions</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition-todo admonition" id="id8">
+<p class="admonition-title">План</p>
+<p>Исправить парс всего сайта целиком.</p>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
+        <a href="../index.html" class="btn btn-neutral float-left" title="Polaris documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2026, Heazo, VvSilv. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
