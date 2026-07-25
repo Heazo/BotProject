@@ -14,17 +14,17 @@ class DB_Manager:
     def __init__(self, host, port, dbname, user, password):
         """Create DB_Manager and connect to the database"""
 
-            try:
-                self.con = psycopg2.connect(
-                    host=host,
-                    port=port,
-                    dbname=dbname,
-                    user=user,
-                    password=password)
-                print("Database is connected.")
-            except Exception as e:
-                print(f"Error connecting to database: {e}")
-                self.con = None
+        try:
+            self.con = psycopg2.connect(
+                host=host,
+                port=port,
+                dbname=dbname,
+                user=user,
+                password=password)
+            print("Database is connected.")
+        except Exception as e:
+            print(f"Error connecting to database: {e}")
+            self.con = None
         
     def connectDB(self, host, port, dbname, user, password):
         if self.con:
@@ -42,21 +42,24 @@ class DB_Manager:
             except Exception as e:
                 print(f"Error connecting to database: {e}")
                 self.con = None
-        
-    #Обернуть в try!!!!
+
     def getSessionsFromDB (self, date): # -> list[tuple]
+        try:
+            cur = self.con.cursor(cursor_factory=RealDictCursor)
 
-        cur = self.con.cursor(cursor_factory=RealDictCursor)
+            result = cur.execute("""SELECT * FROM public.sessions WHERE date = %s
+                                    ORDER BY id ASC""", (date,))
+            # cur.execute("""SELECT * FROM public.sessions
+            #                         ORDER BY id ASC""")
+            result = cur.fetchall()
+            cur.close()
 
-        result = cur.execute("""SELECT * FROM public.sessions WHERE date = %s
-                                ORDER BY id ASC""", (date,))
-        # cur.execute("""SELECT * FROM public.sessions 
-        #                         ORDER BY id ASC""")
-        result = cur.fetchall()
-        cur.close()
+            return result
 
-        return result
-    
+        except Exception as e:
+            print(f"Ошибка БД: {e}")
+            return None
+
     def getGroupsFromDB(self) -> list[Group]:
         cur = self.con.cursor()
 

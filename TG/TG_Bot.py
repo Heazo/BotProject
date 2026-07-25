@@ -19,7 +19,7 @@ class TelegramBotClass:
     async def set_commands(self) -> None:
         """Установка команд в меню бота"""
         commands = [
-            BotCommand(command="search", description="Привязать группу (пример: /search 1234)"),
+            BotCommand(command="search", description="Привязать группу (пример: /search 123456)"),
             BotCommand(command="today", description="Расписание на сегодня"),
             BotCommand(command="tomorrow", description="Расписание на завтра"),
             BotCommand(command="week", description="Расписание на неделю")

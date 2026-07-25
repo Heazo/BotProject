@@ -16,46 +16,45 @@ def create_unique_rasp(db_manager: DB_Manager, day_offset=0) -> list[str]:
     target_date = my_date + timedelta(days=day_offset)
     date_str = target_date.strftime("%d.%m.%Y")
     sessions = db_manager.getSessionsFromDB(date_str)
-    if sessions is not None:
-        rasp = []
-        num_emojis = {
-            "1": "1️⃣",
-            "2": "2️⃣",
-            "3": "3️⃣",
-            "4": "4️⃣",
-            "5": "5️⃣",
-            "6": "6️⃣",
-            "7": "7️⃣"
-        }
 
-        for session in sessions:
-            num_type = num_emojis.get(session['num_session'], "▫️")
+    # Добавляем заголовок с датой
+    day_names = {
+        0: "сегодня",
+        1: "завтра",
+        -1: "вчера"
+    }
+    day_name = day_names.get(day_offset, target_date.strftime("%d.%m.%Y"))
 
-            formatted_session = (
-                f"{num_type}  {session['time_session']}  [{session['kind_of_work']}]\n"
-                f"   📖 {session['discipline']}\n"
-                f"   🏫 {session['auditorium']}\n\n"
-            )
-            rasp.append(formatted_session)
-
-        # Добавляем заголовок с датой
-        day_names = {
-            0: "сегодня",
-            1: "завтра",
-            -1: "вчера"
-        }
-        day_name = day_names.get(day_offset, target_date.strftime("%d.%m.%Y"))
-
-        header = f"📅 Расписание на {day_name} ({date_str}):\n\n"
-        return [header + "\n".join(rasp)]
+    # print(sessions)
+    if sessions is None:
+        return [f"⚠️ Произошла ошибка при получении расписания на {day_name} ({date_str}).\nПожалуйста, попробуйте позже."]
     else:
-        day_names = {
-            0: "сегодня",
-            1: "завтра",
-            -1: "вчера"
-        }
-        day_name = day_names.get(day_offset, target_date.strftime("%d.%m.%Y"))
-        return [f"Расписание на {day_name} не найдено."]
+        if len(sessions) == 0:
+            return [f"📅 На {day_name} ({date_str}) занятий нет 🎉"]
+        else:
+            rasp = []
+            num_emojis = {
+                "1": "1️⃣",
+                "2": "2️⃣",
+                "3": "3️⃣",
+                "4": "4️⃣",
+                "5": "5️⃣",
+                "6": "6️⃣",
+                "7": "7️⃣"
+            }
+
+            for session in sessions:
+                num_type = num_emojis.get(session['num_session'], "▫️")
+
+                formatted_session = (
+                    f"{num_type}  {session['time_session']}  [{session['kind_of_work']}]\n"
+                    f"   📖 {session['discipline']}\n"
+                    f"   🏫 {session['auditorium']}\n\n"
+                )
+                rasp.append(formatted_session)
+
+            header = f"📅 Расписание на {day_name} ({date_str}):\n\n"
+            return [header + "\n".join(rasp)]
     #
     db_rasp = None
     #db_rasp = getRaspFromDB()
