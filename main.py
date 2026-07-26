@@ -1,7 +1,7 @@
 from TG.TG_Bot import TelegramBotClass
 from VK.VK_Bot import VKbot_class
 #from VK.VK_Bot2 import VKbot_class
-from tokens import vk_token, tg_token
+from tokens import vk_token, tg_token, password
 from TimetableProvider.parser_narfu import ParserNARFU
 from TimetableProvider.DB_Manager import DB_Manager
 from datetime import datetime
@@ -13,7 +13,7 @@ def main():
         port=5432,
         dbname="studies_db",
         user="postgres",
-        password="VvSilv25042026sql"
+        password=password
     )
     
     #13372281337        VvSilv25042026sql
