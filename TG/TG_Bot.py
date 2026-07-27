@@ -1,9 +1,11 @@
+from calendar import weekday
+
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command, CommandObject
 from aiogram.types import BotCommand
 from aiogram.fsm.storage.memory import MemoryStorage
 import asyncio
-from TimetableProvider.TimetableCreator import get_rasp_for_day
+from TimetableProvider.TimetableCreator import get_rasp_for_day, get_rasp_for_weekday
 from TimetableProvider.DB_Manager import DB_Manager
 
 
@@ -22,7 +24,14 @@ class TelegramBotClass:
             BotCommand(command="search", description="Привязать группу (пример: /search 123456)"),
             BotCommand(command="today", description="Расписание на сегодня"),
             BotCommand(command="tomorrow", description="Расписание на завтра"),
-            BotCommand(command="week", description="Расписание на неделю")
+            BotCommand(command="week", description="Расписание на неделю"),
+            BotCommand(command="monday", description="Расписание на понедельник"),
+            BotCommand(command="tuesday", description="Расписание на вторник"),
+            BotCommand(command="wednesday", description="Расписание на среду"),
+            BotCommand(command="thursday", description="Расписание на четверг"),
+            BotCommand(command="friday", description="Расписание на пятницу"),
+            BotCommand(command="saturday", description="Расписание на субботу"),
+            BotCommand(command="sunday", description="Расписание на воскресенье")
         ]
         await self.bot.set_my_commands(commands)
         print("Commands set successfully!")
@@ -46,6 +55,63 @@ class TelegramBotClass:
             msg = "\n".join(str(item) for item in msg if item is not None)
         await self.sender(user_id, msg)
         print(f"send_rasp_tomorrow...{msg}")
+
+    async def send_rasp_mon(self, user_id: int) -> None:
+        """Отправка расписания на понедельник"""
+        msg = get_rasp_for_weekday(self.db, weekday=0)
+        if isinstance(msg, list):
+            msg = "\n".join(str(item) for item in msg if item is not None)
+        await self.sender(user_id, msg)
+        print(f"send_rasp_mon...{msg}")
+
+    async def send_rasp_tue(self, user_id: int) -> None:
+        """Отправка расписания на вторник"""
+        msg = get_rasp_for_weekday(self.db, weekday=1)
+        if isinstance(msg, list):
+            msg = "\n".join(str(item) for item in msg if item is not None)
+        await self.sender(user_id, msg)
+        print(f"send_rasp_tue...{msg}")
+
+    async def send_rasp_wed(self, user_id: int) -> None:
+        """Отправка расписания на среду"""
+        msg = get_rasp_for_weekday(self.db, weekday=2)
+        if isinstance(msg, list):
+            msg = "\n".join(str(item) for item in msg if item is not None)
+        await self.sender(user_id, msg)
+        print(f"send_rasp_wed...{msg}")
+
+    async def send_rasp_thu(self, user_id: int) -> None:
+        """Отправка расписания на четверг"""
+        msg = get_rasp_for_weekday(self.db, weekday=3)
+        if isinstance(msg, list):
+            msg = "\n".join(str(item) for item in msg if item is not None)
+        await self.sender(user_id, msg)
+        print(f"send_rasp_thu...{msg}")
+
+    async def send_rasp_fri(self, user_id: int) -> None:
+        """Отправка расписания на пятницу"""
+        msg = get_rasp_for_weekday(self.db, weekday=4)
+        if isinstance(msg, list):
+            msg = "\n".join(str(item) for item in msg if item is not None)
+        await self.sender(user_id, msg)
+        print(f"send_rasp_fri...{msg}")
+
+    async def send_rasp_sat(self, user_id: int) -> None:
+        """Отправка расписания на субботу"""
+        msg = get_rasp_for_weekday(self.db, weekday=5)
+        if isinstance(msg, list):
+            msg = "\n".join(str(item) for item in msg if item is not None)
+        await self.sender(user_id, msg)
+        print(f"send_rasp_sat...{msg}")
+
+    async def send_rasp_sun(self, user_id: int) -> None:
+        """Отправка расписания на воскресенье"""
+        msg = get_rasp_for_weekday(self.db, weekday=6)
+        if isinstance(msg, list):
+            msg = "\n".join(str(item) for item in msg if item is not None)
+        await self.sender(user_id, msg)
+        print(f"send_rasp_sun...{msg}")
+
 
     def _register_handlers(self) -> None:
         """Регистрация всех обработчиков"""
@@ -94,6 +160,34 @@ class TelegramBotClass:
         @self.dp.message(Command("tomorrow"))
         async def tomorrow_command(message: types.Message):
             await self.send_rasp_tomorrow(message.from_user.id)
+
+        @self.dp.message(Command("mon", "monday"))
+        async def monday_command(message: types.Message):
+            await self.send_rasp_mon(message.from_user.id)
+
+        @self.dp.message(Command("tue", "tuesday"))
+        async def tuesday_command(message: types.Message):
+            await self.send_rasp_tue(message.from_user.id)
+
+        @self.dp.message(Command("wed", "wednesday"))
+        async def wednesday_command(message: types.Message):
+            await self.send_rasp_wed(message.from_user.id)
+
+        @self.dp.message(Command("thu", "thursday"))
+        async def thursday_command(message: types.Message):
+            await self.send_rasp_thu(message.from_user.id)
+
+        @self.dp.message(Command("fri", "friday"))
+        async def friday_command(message: types.Message):
+            await self.send_rasp_fri(message.from_user.id)
+
+        @self.dp.message(Command("sat", "saturday"))
+        async def saturday_command(message: types.Message):
+            await self.send_rasp_sat(message.from_user.id)
+
+        @self.dp.message(Command("sun", "sunday"))
+        async def sunday_command(message: types.Message):
+            await self.send_rasp_sun(message.from_user.id)
 
         # Обработчик команды /week
         @self.dp.message(Command("week"))
