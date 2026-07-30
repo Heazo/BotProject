@@ -1,13 +1,19 @@
-from calendar import weekday
-
 from aiogram import Bot, Dispatcher, types
-from aiogram.filters import Command, CommandObject
-from aiogram.types import BotCommand
+from aiogram.filters import Command, CommandObject, StateFilter
+from aiogram.types import BotCommand, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 import asyncio
-from TimetableProvider.TimetableCreator import get_rasp_for_day, get_rasp_for_weekday
+from datetime import datetime, timedelta
+from TimetableProvider.TimetableCreator import get_rasp_for_day, get_rasp_for_date
 from TimetableProvider.DB_Manager import DB_Manager
 
+
+# Определяем состояния для FSM
+class WeekSelectionStates(StatesGroup):
+    selecting_week = State()
+    selecting_day = State()
 
 class TelegramBotClass:
     def __init__(self, token: str, db_manager: DB_Manager):
@@ -15,6 +21,7 @@ class TelegramBotClass:
         self.storage = MemoryStorage()
         self.dp = Dispatcher(storage=self.storage)
         self.db = db_manager
+        self.week_offset = 0  # Храним выбранную неделю
         print("Initializing Telegram Bot\n")
         self._register_handlers()
 
@@ -24,7 +31,7 @@ class TelegramBotClass:
             BotCommand(command="search", description="Привязать группу (пример: /search 123456)"),
             BotCommand(command="today", description="Расписание на сегодня"),
             BotCommand(command="tomorrow", description="Расписание на завтра"),
-            BotCommand(command="week", description="Расписание на неделю"),
+            BotCommand(command="week", description="Выбрать неделю и день"),
             BotCommand(command="monday", description="Расписание на понедельник"),
             BotCommand(command="tuesday", description="Расписание на вторник"),
             BotCommand(command="wednesday", description="Расписание на среду"),
@@ -56,66 +63,120 @@ class TelegramBotClass:
         await self.sender(user_id, msg)
         print(f"send_rasp_tomorrow...{msg}")
 
-    async def send_rasp_mon(self, user_id: int) -> None:
-        """Отправка расписания на понедельник"""
-        msg = get_rasp_for_weekday(self.db, weekday=0)
+    async def send_rasp_weekday(self, user_id: int, weekday: int, week_offset: int = 0) -> None:
+        """Отправка расписания на конкретный день недели с учетом смещения недели"""
+        #datetime.now()
+        now = datetime(2026, 4, 21)
+        start_of_week = now - timedelta(days=now.weekday())
+        target_week_start = start_of_week + timedelta(weeks=week_offset)
+        target_date = target_week_start + timedelta(days=weekday)
+
+        msg = get_rasp_for_date(self.db, target_date)
         if isinstance(msg, list):
             msg = "\n".join(str(item) for item in msg if item is not None)
         await self.sender(user_id, msg)
-        print(f"send_rasp_mon...{msg}")
 
-    async def send_rasp_tue(self, user_id: int) -> None:
-        """Отправка расписания на вторник"""
-        msg = get_rasp_for_weekday(self.db, weekday=1)
-        if isinstance(msg, list):
-            msg = "\n".join(str(item) for item in msg if item is not None)
-        await self.sender(user_id, msg)
-        print(f"send_rasp_tue...{msg}")
+    def create_week_selection_keyboard(self, current_week_offset: int = 0) -> InlineKeyboardMarkup:
+        """Создание клавиатуры для выбора недели"""
+        week_options = []
+        for i in range(4):
+            week_num = current_week_offset + i
+            # datetime.now()
+            now = datetime(2026, 4, 21)
+            start_of_week = now - timedelta(days=now.weekday())
+            week_start = start_of_week + timedelta(weeks=week_num)
+            week_end = week_start + timedelta(days=6)
 
-    async def send_rasp_wed(self, user_id: int) -> None:
-        """Отправка расписания на среду"""
-        msg = get_rasp_for_weekday(self.db, weekday=2)
-        if isinstance(msg, list):
-            msg = "\n".join(str(item) for item in msg if item is not None)
-        await self.sender(user_id, msg)
-        print(f"send_rasp_wed...{msg}")
+            start_str = week_start.strftime("%d.%m")
+            end_str = week_end.strftime("%d.%m")
 
-    async def send_rasp_thu(self, user_id: int) -> None:
-        """Отправка расписания на четверг"""
-        msg = get_rasp_for_weekday(self.db, weekday=3)
-        if isinstance(msg, list):
-            msg = "\n".join(str(item) for item in msg if item is not None)
-        await self.sender(user_id, msg)
-        print(f"send_rasp_thu...{msg}")
+            if week_num == 0:
+                week_label = f"🔵 Текущая неделя"
+            else:
+                week_label = f"📅 {start_str} - {end_str}"
 
-    async def send_rasp_fri(self, user_id: int) -> None:
-        """Отправка расписания на пятницу"""
-        msg = get_rasp_for_weekday(self.db, weekday=4)
-        if isinstance(msg, list):
-            msg = "\n".join(str(item) for item in msg if item is not None)
-        await self.sender(user_id, msg)
-        print(f"send_rasp_fri...{msg}")
+            week_options.append((week_label, week_num))
 
-    async def send_rasp_sat(self, user_id: int) -> None:
-        """Отправка расписания на субботу"""
-        msg = get_rasp_for_weekday(self.db, weekday=5)
-        if isinstance(msg, list):
-            msg = "\n".join(str(item) for item in msg if item is not None)
-        await self.sender(user_id, msg)
-        print(f"send_rasp_sat...{msg}")
+        keyboard = []
+        for label, week_num in week_options:
+            button = InlineKeyboardButton(
+                text=label,
+                callback_data=f"select_week_{week_num}"
+            )
+            keyboard.append([button])
 
-    async def send_rasp_sun(self, user_id: int) -> None:
-        """Отправка расписания на воскресенье"""
-        msg = get_rasp_for_weekday(self.db, weekday=6)
-        if isinstance(msg, list):
-            msg = "\n".join(str(item) for item in msg if item is not None)
-        await self.sender(user_id, msg)
-        print(f"send_rasp_sun...{msg}")
 
+        return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+    def create_day_selection_keyboard(self, week_offset: int) -> InlineKeyboardMarkup:
+        """Создание клавиатуры для выбора дня недели после выбора недели"""
+        # datetime.now()
+        now = datetime(2026, 4, 21)
+        start_of_week = now - timedelta(days=now.weekday())
+        target_week_start = start_of_week + timedelta(weeks=week_offset)
+
+        weekdays = {
+            "Пн": 0,
+            "Вт": 1,
+            "Ср": 2,
+            "Чт": 3,
+            "Пт": 4,
+            "Сб": 5,
+            "Вс": 6
+        }
+
+        keyboard = []
+        row = []
+
+        for i, (day_name, day_num) in enumerate(weekdays.items()):
+            day_date = target_week_start + timedelta(days=day_num)
+            date_str = day_date.strftime("%d.%m")
+
+            today = now.date()
+            day_date_only = day_date.date()
+
+            if day_date_only == today:
+                day_label = f"🔵 {day_name} (сегодня)"
+            elif day_date_only == today + timedelta(days=1):
+                day_label = f"🟢 {day_name} (завтра)"
+            else:
+                day_label = f"{day_name} {date_str}"
+
+            button = InlineKeyboardButton(
+                text=day_label,
+                callback_data=f"select_day_{week_offset}_{day_num}"
+            )
+            row.append(button)
+
+            if (i + 1) % 2 == 0:
+                keyboard.append(row)
+                row = []
+
+        if row:
+            keyboard.append(row)
+
+        keyboard.append([
+            InlineKeyboardButton(
+                text="Назад к неделям",
+                callback_data="back_to_weeks"
+            )
+        ])
+
+        return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
     def _register_handlers(self) -> None:
         """Регистрация всех обработчиков"""
         db = self.db
+
+        weekday_commands = {
+            "monday": 0,
+            "tuesday": 1,
+            "wednesday": 2,
+            "thursday": 3,
+            "friday": 4,
+            "saturday": 5,
+            "sunday": 6
+        }
 
         # Обработчик команды /start
         @self.dp.message(Command("start"))
@@ -161,38 +222,70 @@ class TelegramBotClass:
         async def tomorrow_command(message: types.Message):
             await self.send_rasp_tomorrow(message.from_user.id)
 
-        @self.dp.message(Command("mon", "monday"))
-        async def monday_command(message: types.Message):
-            await self.send_rasp_mon(message.from_user.id)
+        for command_name, weekday_num in weekday_commands.items():
+            @self.dp.message(Command(command_name))
+            async def weekday_command(message: types.Message, wn=weekday_num):
+                user_id = str(message.from_user.id)
+                await self.send_rasp_weekday(message.from_user.id, wn, 0)
 
-        @self.dp.message(Command("tue", "tuesday"))
-        async def tuesday_command(message: types.Message):
-            await self.send_rasp_tue(message.from_user.id)
-
-        @self.dp.message(Command("wed", "wednesday"))
-        async def wednesday_command(message: types.Message):
-            await self.send_rasp_wed(message.from_user.id)
-
-        @self.dp.message(Command("thu", "thursday"))
-        async def thursday_command(message: types.Message):
-            await self.send_rasp_thu(message.from_user.id)
-
-        @self.dp.message(Command("fri", "friday"))
-        async def friday_command(message: types.Message):
-            await self.send_rasp_fri(message.from_user.id)
-
-        @self.dp.message(Command("sat", "saturday"))
-        async def saturday_command(message: types.Message):
-            await self.send_rasp_sat(message.from_user.id)
-
-        @self.dp.message(Command("sun", "sunday"))
-        async def sunday_command(message: types.Message):
-            await self.send_rasp_sun(message.from_user.id)
-
-        # Обработчик команды /week
         @self.dp.message(Command("week"))
-        async def week_command(message: types.Message):
-            await message.answer("Расписание на неделю (функция в разработке)")
+        async def week_command(message: types.Message, state: FSMContext):
+            user_id = str(message.from_user.id)
+
+            # Устанавливаем состояние
+            await state.set_state(WeekSelectionStates.selecting_week)
+            keyboard = self.create_week_selection_keyboard(0)
+            await message.answer(
+                "📅 Выберите неделю:",
+                reply_markup=keyboard
+            )
+
+        # Обработчик callback-запросов для состояния "выбор недели"
+        @self.dp.callback_query(StateFilter(WeekSelectionStates.selecting_week))
+        async def process_week_selection(callback: types.CallbackQuery, state: FSMContext):
+            data = callback.data
+
+            if data.startswith("select_week_"):
+                week_offset = int(data.split("_")[2])
+                await state.update_data(week_offset=week_offset)
+                await state.set_state(WeekSelectionStates.selecting_day)
+
+                keyboard = self.create_day_selection_keyboard(week_offset)
+                await callback.message.edit_text(
+                    f"📅 Выберите день недели:",
+                    reply_markup=keyboard
+                )
+                await callback.answer()
+
+        # Обработчик callback-запросов для состояния "выбор дня"
+        @self.dp.callback_query(StateFilter(WeekSelectionStates.selecting_day))
+        async def process_day_selection(callback: types.CallbackQuery, state: FSMContext):
+            data = callback.data
+
+            if data == "back_to_weeks":
+                await state.set_state(WeekSelectionStates.selecting_week)
+                keyboard = self.create_week_selection_keyboard(0)
+                await callback.message.edit_text(
+                    "📅 Выберите неделю:",
+                    reply_markup=keyboard
+                )
+                await callback.answer()
+                return
+
+            if data.startswith("select_day_"):
+                parts = data.split("_")
+                week_offset = int(parts[2])
+                weekday_num = int(parts[3])
+
+                user_id = callback.from_user.id
+
+                # Получаем и отправляем расписание
+                await callback.message.delete()
+                await self.send_rasp_weekday(user_id, weekday_num, week_offset)
+                await callback.answer()
+
+                # Очищаем состояние
+                await state.clear()
 
     async def run_polling(self) -> None:
         """Запуск бота в режиме polling"""

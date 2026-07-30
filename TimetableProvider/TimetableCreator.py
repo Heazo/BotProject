@@ -6,8 +6,6 @@ from html import parser
 from TimetableProvider.parser_narfu import ParserNARFU
 from TimetableProvider.DB_Manager import DB_Manager
 
-
-
 def create_unique_rasp(db_manager: DB_Manager, day_offset=0) -> list[str]:
 
     # datetime.now()
@@ -21,7 +19,6 @@ def create_unique_rasp(db_manager: DB_Manager, day_offset=0) -> list[str]:
     day_names = {
         0: "сегодня",
         1: "завтра",
-        -1: "вчера"
     }
     day_name = day_names.get(day_offset, target_date.strftime("%d.%m.%Y"))
 
@@ -81,43 +78,22 @@ def create_unique_rasp(db_manager: DB_Manager, day_offset=0) -> list[str]:
 def get_rasp_for_day(db_manager: DB_Manager, day_offset) -> list[str]:
     return create_unique_rasp(db_manager, day_offset)
 
-def get_rasp_for_weekday(db_manager: DB_Manager, weekday: int) -> list[str]:
+def get_rasp_for_date(db_manager: DB_Manager, date: datetime) -> list[str]:
     """
-    Получить расписание на указанный день недели текущей недели.
+    Получить расписание на конкретную дату.
 
     Args:
         db_manager: менеджер базы данных
-        weekday: день недели (0 - понедельник, 1 - вторник, ..., 6 - воскресенье)
+        date: объект datetime с нужной датой
 
     Returns:
         list[str]: расписание в виде списка строк
     """
-    # Получаем текущую дату
-    # now = datetime.now()
-
-    my_date = datetime(2026, 4, 21)
-
-    # Вычисляем день недели текущей даты (0 - понедельник, 6 - воскресенье)
-    current_weekday = my_date.weekday()
-
-    # Вычисляем смещение до нужного дня недели
-    # Если нужный день уже прошел на этой неделе, берем следующую неделю
-    if weekday < current_weekday:
-        # Нужный день был на этой неделе, берем следующий такой день
-        days_until = 7 - (current_weekday - weekday)
-    else:
-        # Нужный день еще будет на этой неделе
-        days_until = weekday - current_weekday
-
-    # Получаем дату нужного дня
-    target_date = my_date + timedelta(days=days_until)
-    date_str = target_date.strftime("%d.%m.%Y")
-
-    # Получаем расписание из БД
+    date_str = date.strftime("%d.%m.%Y")
     sessions = db_manager.getSessionsFromDB(date_str)
 
-    # Названия дней недели на русском
-    weekdays = {
+    # Название дня недели
+    weekdays_ru = {
         0: "Понедельник",
         1: "Вторник",
         2: "Среда",
@@ -126,8 +102,7 @@ def get_rasp_for_weekday(db_manager: DB_Manager, weekday: int) -> list[str]:
         5: "Суббота",
         6: "Воскресенье"
     }
-
-    day_name = weekdays.get(weekday, "Неизвестный день")
+    day_name = weekdays_ru.get(date.weekday(), "Неизвестный день")
 
     if sessions is None:
         return [
