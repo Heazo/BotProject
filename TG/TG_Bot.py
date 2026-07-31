@@ -80,14 +80,19 @@ class TelegramBotClass:
 
     async def send_rasp_weekday(self, user_id: int, weekday: int, week_offset: int = 0) -> None:
         """Отправка расписания на конкретный день недели с учетом смещения недели"""
-        
-        #datetime.now()
-        now = datetime(2026, 6, 8)
-        start_of_week = now - timedelta(days=now.weekday())
-        target_week_start = start_of_week + timedelta(weeks=week_offset)
-        target_date = target_week_start + timedelta(days=weekday)
 
-        msg = get_rasp_for_date(self.db, target_date)
+        group = self.db.getUserGroup(str(user_id))
+        if group:
+            #datetime.now()
+            now = datetime(2026, 6, 8)
+            start_of_week = now - timedelta(days=now.weekday())
+            target_week_start = start_of_week + timedelta(weeks=week_offset)
+            target_date = target_week_start + timedelta(days=weekday)
+
+            msg = get_rasp_for_date(self.db, target_date, group_num=group[0])
+        else:
+            msg = self.find_group_message
+
         if isinstance(msg, list):
             msg = "\n".join(str(item) for item in msg if item is not None)
         await self.sender(user_id, msg)
@@ -197,10 +202,9 @@ class TelegramBotClass:
             "sunday": 6
         }
 
-        # Обработчик команды /start
         @self.dp.message(Command("start"))
         async def start_command(message: types.Message):
-            await message.answer("Привет!")
+            await message.answer("Привет",)
 
         # Обработчик команды /search с параметром
         @self.dp.message(Command("search"))
@@ -220,9 +224,9 @@ class TelegramBotClass:
                 await message.answer(
                     f"Группа {group_num} успешно привязана!\n\n"
                     "Теперь вы можете получать расписание:\n"
-                    "• /today — на сегодня\n"
-                    "• /tomorrow — на завтра\n"
-                    "• /week — на неделю"
+                    "• /today - на сегодня\n"
+                    "• /tomorrow - на завтра\n"
+                    "• /week - на неделю"
                 )
             else:
                 await message.answer(
