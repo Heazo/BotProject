@@ -6,14 +6,15 @@ from html import parser
 from TimetableProvider.parser_narfu import ParserNARFU
 from TimetableProvider.DB_Manager import DB_Manager
 
-def create_unique_rasp(db_manager: DB_Manager, day_offset=0) -> list[str]:
+def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=None) -> list[str]:
 
     # datetime.now()
-    my_date = datetime(2026, 4, 21)
+    my_date = datetime(2026, 6, 8)
     # date = my_date.strftime("%d.%m.%Y")
     target_date = my_date + timedelta(days=day_offset)
     date_str = target_date.strftime("%d.%m.%Y")
-    sessions = db_manager.getSessionsFromDB(date_str)
+    
+    sessions = db_manager.getSessionsFromDB(date_str, group_num=group_num)
 
     # Добавляем заголовок с датой
     day_names = {
@@ -75,22 +76,23 @@ def create_unique_rasp(db_manager: DB_Manager, day_offset=0) -> list[str]:
     #             break
     #!return db_rasp
 
-def get_rasp_for_day(db_manager: DB_Manager, day_offset) -> list[str]:
-    return create_unique_rasp(db_manager, day_offset)
+def get_rasp_for_day(db_manager: DB_Manager, day_offset, group_num) -> list[str]:
+    return create_unique_rasp(db_manager, day_offset, group_num)
 
-def get_rasp_for_date(db_manager: DB_Manager, date: datetime) -> list[str]:
+def get_rasp_for_date(db_manager: DB_Manager, date: datetime, group_num: str = None) -> list[str]:
     """
     Получить расписание на конкретную дату.
 
     Args:
         db_manager: менеджер базы данных
         date: объект datetime с нужной датой
+        group_num: номер группы
 
     Returns:
         list[str]: расписание в виде списка строк
     """
     date_str = date.strftime("%d.%m.%Y")
-    sessions = db_manager.getSessionsFromDB(date_str)
+    sessions = db_manager.getSessionsFromDB(date_str, group_num=group_num)
 
     # Название дня недели
     weekdays_ru = {

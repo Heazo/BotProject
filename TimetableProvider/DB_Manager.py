@@ -60,11 +60,12 @@ class DB_Manager:
                 print(f"Error connecting to database: {e}")
                 self.con = None
 
-    def getSessionsFromDB(self, date: str):
+    def getSessionsFromDB(self, date: str, group_num: str = None) -> list[dict]:
         """Retrieve sessions for a specific date.
 
         Args:
             date (str): Date string used to filter sessions in the database.
+            group_num (str, optional): Group number to further filter sessions.
 
         Returns:
             list[dict]: A list of rows from the sessions table as dictionaries.
@@ -73,8 +74,13 @@ class DB_Manager:
         try:
             cur = self.con.cursor(cursor_factory=RealDictCursor)
 
-            result = cur.execute("""SELECT * FROM public.sessions WHERE date = %s
-                                    ORDER BY id ASC""", (date,))
+            if group_num:
+                result = cur.execute("""SELECT * FROM public.sessions WHERE date = %s AND group_num = %s
+                                        ORDER BY id ASC""", (date, group_num))
+            else:
+                result = cur.execute("""SELECT * FROM public.sessions WHERE date = %s
+                                        ORDER BY id ASC""", (date,))
+            
             # cur.execute("""SELECT * FROM public.sessions
             #                         ORDER BY id ASC""")
             result = cur.fetchall()
@@ -110,6 +116,26 @@ class DB_Manager:
             groups.append(group)
 
         return groups
+    
+    def getUserGroup(self, user_id: str) -> str:
+        """Retrieve the group number associated with a specific user.
+
+        Args:
+            user_id (str): User identifier to look up in the users table.
+
+        Returns:
+            str: The group number associated with the user, or None if not found.
+        """
+
+        cur = self.con.cursor()
+        cur.execute("""SELECT group_num FROM public.users WHERE vk_id = %s""", (user_id,))
+        result = cur.fetchone()
+        cur.close()
+
+        if result:
+            return result
+        else:
+            return None
 
     def F1(self):
         print("F1 !!!!!!!!!!!!!!")
@@ -163,7 +189,7 @@ class DB_Manager:
         self.con.commit()
         cur.close()
     
-    #Можно использовать декораторы чтобы сделать код более честым и избавить каждый метод от одних и тех де проверок
+    #Можно использовать декораторы чтобы сделать код более честым и избавить каждый метод от одних и тех же проверок
     def insertUserAndGroup(self, user_id: str, group_num: str):
         """Insert a user and their associated group into the database.
 
@@ -181,6 +207,8 @@ class DB_Manager:
                 INSERT INTO users 
                     (vk_id, group_num)
                 VALUES (%s, %s)
+                ON CONFLICT (vk_id) 
+                DO UPDATE SET group_num = EXCLUDED.group_num
             """
             cur.execute(insert_query, (user_id, group_num))
             self.con.commit()

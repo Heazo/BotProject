@@ -24,6 +24,7 @@ class TelegramBotClass:
         self.week_offset = 0  # Храним выбранную неделю
         print("Initializing Telegram Bot\n")
         self._register_handlers()
+        self.find_group_message = "Пожалуйста, укажите номер группы.\nПример: /search 123456"
 
     async def set_commands(self) -> None:
         """Установка команд в меню бота"""
@@ -45,19 +46,33 @@ class TelegramBotClass:
 
     async def sender(self, user_id: int, msg: str) -> None:
         """Отправка сообщения пользователю"""
+        
         await self.bot.send_message(chat_id=user_id, text=msg)
 
     async def send_rasp_today(self, user_id: int) -> None:
         """Отправка расписания на сегодня"""
-        msg = get_rasp_for_day(self.db, day_offset=0)
+        
+        group = self.db.getUserGroup(str(user_id))
+        if group:
+            msg = get_rasp_for_day(self.db, day_offset=0, group_num=group[0])
+        else:
+            msg = self.find_group_message
         if isinstance(msg, list):
             msg = "\n".join(str(item) for item in msg if item is not None)
-        await self.sender(user_id, msg)
+        print(f"Your group: {group}")
         print(f"send_rasp_today...{msg}")
+        await self.sender(user_id, msg)
+        
 
     async def send_rasp_tomorrow(self, user_id: int) -> None:
         """Отправка расписания на завтра"""
-        msg = get_rasp_for_day(self.db, day_offset=1)
+        
+        group = self.db.getUserGroup(str(user_id))
+        if group:
+            msg = get_rasp_for_day(self.db, day_offset=1, group_num=group[0])
+        else:
+            msg = self.find_group_message
+        
         if isinstance(msg, list):
             msg = "\n".join(str(item) for item in msg if item is not None)
         await self.sender(user_id, msg)
@@ -65,8 +80,9 @@ class TelegramBotClass:
 
     async def send_rasp_weekday(self, user_id: int, weekday: int, week_offset: int = 0) -> None:
         """Отправка расписания на конкретный день недели с учетом смещения недели"""
+        
         #datetime.now()
-        now = datetime(2026, 4, 21)
+        now = datetime(2026, 6, 8)
         start_of_week = now - timedelta(days=now.weekday())
         target_week_start = start_of_week + timedelta(weeks=week_offset)
         target_date = target_week_start + timedelta(days=weekday)
@@ -78,11 +94,12 @@ class TelegramBotClass:
 
     def create_week_selection_keyboard(self, current_week_offset: int = 0) -> InlineKeyboardMarkup:
         """Создание клавиатуры для выбора недели"""
+        
         week_options = []
         for i in range(4):
             week_num = current_week_offset + i
             # datetime.now()
-            now = datetime(2026, 4, 21)
+            now = datetime(2026, 6, 8)
             start_of_week = now - timedelta(days=now.weekday())
             week_start = start_of_week + timedelta(weeks=week_num)
             week_end = week_start + timedelta(days=6)
@@ -110,8 +127,9 @@ class TelegramBotClass:
 
     def create_day_selection_keyboard(self, week_offset: int) -> InlineKeyboardMarkup:
         """Создание клавиатуры для выбора дня недели после выбора недели"""
+        
         # datetime.now()
-        now = datetime(2026, 4, 21)
+        now = datetime(2026, 6, 8)
         start_of_week = now - timedelta(days=now.weekday())
         target_week_start = start_of_week + timedelta(weeks=week_offset)
 
@@ -166,6 +184,7 @@ class TelegramBotClass:
 
     def _register_handlers(self) -> None:
         """Регистрация всех обработчиков"""
+        
         db = self.db
 
         weekday_commands = {
@@ -289,10 +308,12 @@ class TelegramBotClass:
 
     async def run_polling(self) -> None:
         """Запуск бота в режиме polling"""
+        
         await self.set_commands()  # Устанавливаем команды ПЕРЕД запуском
         print("Bot started polling...")
         await self.dp.start_polling(self.bot)
 
     def run(self) -> None:
         """Синхронная обёртка для запуска"""
+        
         asyncio.run(self.run_polling())
