@@ -140,7 +140,7 @@ class VKbot_class:
         @self.bot.on.private_message(text="/search <group_num>")
         async def search_handler(message, group_num: str):
             user_id = str(message.from_id)
-            result = db.insertUserAndGroup(user_id, group_num)
+            result = db.insertUserAndGroup(user_id, group_num, "vk")
             if result:
                 await message.answer(f"Группа {group_num} успешно привязана!")
             else:

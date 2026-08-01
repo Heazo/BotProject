@@ -219,7 +219,7 @@ class TelegramBotClass:
                 )
                 return
 
-            result = db.insertUserAndGroup(user_id, group_num)
+            result = db.insertUserAndGroup(user_id, group_num, "tg")
             if result:
                 await message.answer(
                     f"Группа {group_num} успешно привязана!\n\n"

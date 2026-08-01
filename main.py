@@ -20,13 +20,22 @@ def main():
     
     #parser = ParserNARFU()
 
-    # vkbot = VKbot_class(vk_token, db_manager)
+     #vkbot = VKbot_class(vk_token, db_manager)
     # vkbot.event_handler()
 
     tgbot = TelegramBotClass(tg_token, db_manager)
     tgbot.run()
 
-
+    #Возможно ненужный метод
+    #db_manager.createChoicedDisciplinesTable(r"C:\Users\grief\source\PyProjects\BotProject\Choiced disciplines parsed\catalog.csv")
+    
+    #Сделать проверку на то что ничего не нашлось, и тогда напишем об этом пользователю
+    #disp = "Имструменты анализа данных"
+    #res = db_manager.find_best_discipline(disp)
+    #db_manager.addUserDiscipline("931321821", res['id'])
+    #disciplines = db_manager.getUserDisciplines("931321821")
+    #print(disciplines[0]["name"])
+    #print(disciplines[1]["name"])
 
 if __name__ == '__main__':
    main()

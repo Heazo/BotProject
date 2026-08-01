@@ -8,3 +8,4 @@ A messanger bot for get individual lesson schedule.
 - pip install beautifulsoup4
 - pip install psycopg2
 - pip install sphinx sphinx-autobuild sphinx-rtd-theme
+- pip install thefuzz
