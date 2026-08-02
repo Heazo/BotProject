@@ -1,5 +1,5 @@
 class Session:
-    def __init__(self, num_session, time_session, kindOfWork, discipline, auditorium, group_thread, group_num, day_of_week, date):
+    def __init__(self, num_session, time_session, kindOfWork, discipline, auditorium, group_thread, group_num, day_of_week, date, is_choiced: bool = False):
         self.num_session = num_session
         self.time_session = time_session
         self.kindOfWork = kindOfWork
@@ -9,3 +9,4 @@ class Session:
         self.group_num = group_num
         self.day_of_week = day_of_week
         self.date = date
+        self.is_choiced = is_choiced
