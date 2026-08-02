@@ -2,6 +2,7 @@ from TimetableProvider.TimetableCreator import get_rasp_for_day, get_rasp_for_da
 from TimetableProvider.DB_Manager import DB_Manager
 from vkbottle import Bot, Keyboard, Text
 from datetime import datetime, timedelta
+import json
 
 
 class VKbot_class:
@@ -79,6 +80,7 @@ class VKbot_class:
         keyboard.add(Text("Начать"))
         keyboard.row()
         keyboard.add(Text("День недели", payload={"command": "weekday"}))
+        keyboard.add(Text("Неделя", payload={"command": "week"}))
         keyboard.row()
         keyboard.add(Text("Сегодня", payload={"command": "today"}))
         keyboard.add(Text("Завтра", payload={"command": "tomorrow"}))
@@ -99,6 +101,99 @@ class VKbot_class:
         keyboard.row()
         # Кнопка для возврата в главное меню
         keyboard.add(Text("Назад", payload={"command": "back"}))
+        return keyboard
+
+    def create_week_selection_keyboard(self):
+        keyboard = Keyboard(one_time=False, inline=True)
+
+        now = datetime(2026, 6, 8)
+        start_of_week = now - timedelta(days=now.weekday())
+
+        for i in range(4):
+            week_start = start_of_week + timedelta(weeks=i)
+            week_end = week_start + timedelta(days=6)
+
+            if i == 0:
+                text = "🔵 Текущая неделя"
+            else:
+                text = f"{week_start.strftime('%d.%m')} - {week_end.strftime('%d.%m')}"
+
+            keyboard.add(
+                Text(
+                    text,
+                    payload={
+                        "cmd": "week",
+                        "offset": i
+                    }
+                )
+            )
+
+            if (i + 1) % 2 == 0:
+                keyboard.row()
+
+        keyboard.row()
+        keyboard.add(
+            Text(
+                "Назад",
+                payload={"cmd": "back"}
+            )
+        )
+
+        return keyboard
+
+    def create_day_selection_keyboard(self, week_offset):
+        keyboard = Keyboard(one_time=False, inline=True)
+
+        now = datetime(2026, 6, 8)
+        start_of_week = now - timedelta(days=now.weekday())
+        target_week = start_of_week + timedelta(weeks=week_offset)
+
+        weekdays = [
+            ("Пн", 0),
+            ("Вт", 1),
+            ("Ср", 2),
+            ("Чт", 3),
+            ("Пт", 4),
+            ("Сб", 5),
+            ("Вс", 6),
+        ]
+
+        today = now.date()
+
+        for i, (name, num) in enumerate(weekdays):
+
+            date = target_week + timedelta(days=num)
+
+            if date.date() == today:
+                text = f"🔵 {name} Сегодня"
+            elif date.date() == today + timedelta(days=1):
+                text = f"🟢 {name} Завтра"
+            else:
+                text = f"{name} {date.strftime('%d.%m')}"
+
+            keyboard.add(
+                Text(
+                    text,
+                    payload={
+                        "cmd": "day",
+                        "week": week_offset,
+                        "day": num
+                    }
+                )
+            )
+
+            if (i + 1) % 2 == 0:
+                keyboard.row()
+
+        keyboard.row()
+
+        keyboard.add(
+            Text(
+                "Назад к неделям",
+                payload={"cmd": "weeks"}
+            )
+        )
+
         return keyboard
 
     def _register_handlers(self) -> None:
@@ -134,6 +229,16 @@ class VKbot_class:
             kb = self.get_weekday_keyboard()
             await message.answer("Выберите день недели:", keyboard=kb)
 
+        @self.bot.on.private_message(text=["Неделя", "week", "/week"])
+        async def week_command(message):
+
+            kb = self.create_week_selection_keyboard()
+
+            await message.answer(
+                "Выберите неделю:",
+                keyboard=kb
+            )
+
         @self.bot.on.private_message(text=["Пн", "Вт", "Ср", "Чт",
                                            "Пт", "Сб", "Вс"])
         async def weekday_selection(message):
@@ -146,11 +251,53 @@ class VKbot_class:
             if weekday is not None:
                 await self.send_rasp_weekday(message.from_id, weekday)
 
+        @self.bot.on.private_message()
+        async def payload_handler(message):
+
+            if not message.payload:
+                return
+
+            payload = json.loads(message.payload)
+
+            cmd = payload.get("cmd")
+
+            if cmd == "week":
+
+                week = int(payload["offset"])
+
+                await message.answer(
+                    "Выберите день:",
+                    keyboard=self.create_day_selection_keyboard(week)
+                )
+
+            elif cmd == "day":
+
+                await self.send_rasp_weekday(
+                    message.from_id,
+                    weekday=int(payload["day"]),
+                    week_offset=int(payload["week"])
+                )
+
+            elif cmd == "weeks":
+
+                await message.answer(
+                    "Выберите неделю:",
+                    keyboard=self.create_week_selection_keyboard()
+                )
+
+            elif cmd == "back":
+
+                await message.answer(
+                    "Главное меню",
+                    keyboard=self.get_keyboard()
+                )
+
         @self.bot.on.private_message(text=["Назад", "back", "/back"])
         async def back_command(message):
             """Возврат в главное меню"""
             kb = self.get_keyboard()
             await message.answer("Главное меню:", keyboard=kb)
+
 
     def event_handler(self) -> None:
         self.bot.run()
