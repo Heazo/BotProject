@@ -96,6 +96,70 @@ class DB_Manager:
             print(f"Ошибка БД: {e}")
             return None
 
+    def getLastUpdateForGroup(self, group_num: str):
+        """Return the most recent update timestamp for a specific group.
+
+        Args:
+            group_num (str): Group number to query in the sessions table.
+
+        Returns:
+            datetime.datetime | datetime.date | None: Latest value from the
+            updated_at column, or None if no rows are found.
+        """
+        if not self.con or not group_num:
+            return None
+
+        cur = self.con.cursor()
+        try:
+            cur.execute(
+                """
+                SELECT MAX(updated_at) AS last_update
+                FROM public.sessions
+                WHERE group_num = %s
+                """,
+                (group_num,)
+            )
+            result = cur.fetchone()
+
+            if not result or result[0] is None:
+                return None
+
+            value = result[0]
+            #if hasattr(value, 'date'):
+                #return value.date()
+            return value
+        except Exception as e:
+            print(f"Error retrieving last update for group {group_num}: {e}")
+            return None
+        finally:
+            cur.close()
+            
+    def getURLForGroup(self, group_num: str) -> str:
+        """Retrieve the URL associated with a specific group.
+
+        Args:
+            group_num (str): Group number to look up in the groups table.
+
+        Returns:
+            str: The URL associated with the group, or None if not found.
+        """
+        if not self.con or not group_num:
+            return None
+
+        cur = self.con.cursor()
+        try:
+            cur.execute("""SELECT url FROM public.groups WHERE group_num = %s""", (group_num,))
+            result = cur.fetchone()
+            if result:
+                return result[0]
+            else:
+                return None
+        except Exception as e:
+            print(f"Error retrieving URL for group {group_num}: {e}")
+            return None
+        finally:
+            cur.close()
+
     def getGroupsFromDB(self) -> list[Group]:
         """Retrieve all groups from the database.
 
@@ -171,6 +235,60 @@ class DB_Manager:
             ))
         self.con.commit()
         cur.close()
+
+    def replaceSessionsForGroup(self, group_num: str, sessions: list[Session]) -> bool:
+        """Replace all sessions for a group with a new list of sessions.
+
+        Args:
+            group_num (str): Group number whose rows should be replaced.
+            sessions (list[Session]): New session objects for this group.
+
+        Returns:
+            bool: True on success, False on failure.
+        """
+        if not self.con or not group_num:
+            print("Error connecting to database or invalid group number")
+            return False
+
+        cur = self.con.cursor()
+        try:
+            cur.execute(
+                "DELETE FROM public.sessions WHERE group_num = %s",
+                (group_num,)
+            )
+
+            if sessions:
+                insert_query = """
+                    INSERT INTO sessions 
+                        (num_session, time_session, kind_of_work, discipline,
+                        auditorium, group_thread, group_num, day_of_week, date, is_choiced)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """
+                cur.executemany(insert_query, [
+                    (
+                        session.num_session,
+                        session.time_session,
+                        session.kindOfWork,
+                        session.discipline,
+                        session.auditorium,
+                        session.group_thread,
+                        session.group_num,
+                        session.day_of_week,
+                        session.date,
+                        session.is_choiced,
+                    )
+                    for session in sessions
+                ])
+
+            self.con.commit()
+            return True
+        except Exception as e:
+            self.con.rollback()
+            print(f"Error replacing sessions for group {group_num}: {e}")
+            return False
+        finally:
+            if cur:
+                cur.close()
 
     def insertGroups(self, groups: list[Group]):
         """Insert groups into the database, ignoring duplicates.
@@ -300,98 +418,6 @@ class DB_Manager:
                 cur.close()
         return True
 
-    def createChoicedDisciplinesTable(self, csv_path: str) -> bool:
-        """Create choiced disciplines tables and populate them from catalog.csv.
-
-        The structure is:
-            - choiced_disciplines: catalog records
-            - user_choiced_disciplines: many-to-many association table between users(user_id)
-              and choiced_disciplines(id)
-
-        Args:
-            csv_path (str): Path to the CSV file with columns:
-                name, normalized_name, semesters, source_pages
-
-        Returns:
-            bool: True on success, False otherwise.
-        """
-        if not self.con:
-            print("Error connecting to database")
-            return False
-
-        cur = self.con.cursor()
-
-        try:
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS choiced_disciplines (
-                    id SERIAL PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    normalized_name TEXT NOT NULL,
-                    semesters TEXT,
-                    source_pages TEXT,
-                    UNIQUE (normalized_name)
-                )
-            """)
-
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS user_choiced_disciplines (
-                    user_id BIGINT NOT NULL,
-                    discipline_id INTEGER NOT NULL,
-                    PRIMARY KEY (user_id, discipline_id),
-                    CONSTRAINT fk_user_choiced_user_id
-                        FOREIGN KEY (user_id)
-                        REFERENCES public.users(user_id)
-                        ON DELETE CASCADE,
-                    CONSTRAINT fk_user_choiced_discipline
-                        FOREIGN KEY (discipline_id)
-                        REFERENCES public.choiced_disciplines(id)
-                        ON DELETE CASCADE
-                )
-            """)
-
-            if not os.path.exists(csv_path):
-                raise FileNotFoundError(f"CSV file not found: {csv_path}")
-
-            with open(csv_path, newline='', encoding='utf-8-sig') as csv_file:
-                reader = csv.DictReader(csv_file)
-                for row in reader:
-                    if not row:
-                        continue
-
-                    name = (row.get('name') or '').strip()
-                    normalized_name = (row.get('normalized_name') or '').strip()
-                    semesters = (row.get('semesters') or '').strip()
-                    source_pages = (row.get('source_pages') or '').strip()
-
-                    if not name:
-                        continue
-
-                    if not normalized_name:
-                        normalized_name = name.lower()
-
-                    cur.execute(
-                        """
-                        INSERT INTO choiced_disciplines (name, normalized_name, semesters, source_pages)
-                        VALUES (%s, %s, %s, %s)
-                        ON CONFLICT (normalized_name)
-                        DO UPDATE SET
-                            name = EXCLUDED.name,
-                            semesters = EXCLUDED.semesters,
-                            source_pages = EXCLUDED.source_pages
-                        """,
-                        (name, normalized_name, semesters, source_pages)
-                    )
-
-            self.con.commit()
-            return True
-
-        except Exception as e:
-            self.con.rollback()
-            print(f"Error creating choiced disciplines table: {e}")
-            return False
-        finally:
-            cur.close()
-
     @staticmethod
     def _normalize_discipline_name(value: str) -> str:
         """Normalize a discipline name for fuzzy comparison.
@@ -520,111 +546,9 @@ class DB_Manager:
             return False
         finally:
             cur.close()
+            
 
-    def createChoicedDisciplinesTable(self, csv_path: str) -> bool:
-        """Create the chosen disciplines catalog from catalog.csv and link it to users through a many-to-many table.
-
-        Args:
-            csv_path (str): Path to the CSV file with columns: name, normalized_name, semesters, source_pages.
-
-        Returns:
-            bool: True if the table and catalog were created successfully, otherwise False.
-        """
-        if not self.con:
-            print("Error connecting to database")
-            return False
-
-        cur = self.con.cursor()
-        try:
-            cur.execute("""
-                SELECT column_name, data_type
-                FROM information_schema.columns
-                WHERE table_schema='public' AND table_name='users'
-            """)
-            user_columns = {row[0]: row[1] for row in cur.fetchall()}
-
-            if "user_id" in user_columns:
-                user_key_col = "user_id"
-                user_key_type = user_columns["user_id"]
-                user_target = "public.users(user_id)"
-            elif "user_id" in user_columns:
-                user_key_col = "user_id"
-                user_key_type = user_columns["user_id"]
-                user_target = "public.users(user_id)"
-            else:
-                raise ValueError("Таблица users должна содержать столбец user_id или user_id")
-
-            if user_key_type in ("character varying", "varchar", "text", "bpchar"):
-                join_user_type_sql = "TEXT"
-            elif user_key_type in ("integer", "bigint", "smallint"):
-                join_user_type_sql = "BIGINT"
-            else:
-                join_user_type_sql = "TEXT"
-
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS public.choiced_disciplines (
-                    id SERIAL PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    normalized_name TEXT NOT NULL UNIQUE,
-                    semesters TEXT,
-                    source_pages TEXT
-                )
-            """)
-
-            cur.execute(f"""
-                CREATE TABLE IF NOT EXISTS public.user_choiced_disciplines (
-                    user_id {join_user_type_sql} NOT NULL,
-                    discipline_id INTEGER NOT NULL,
-                    PRIMARY KEY (user_id, discipline_id),
-                    CONSTRAINT fk_user_choiced_disciplines_user
-                        FOREIGN KEY (user_id) REFERENCES {user_target}
-                        ON DELETE CASCADE,
-                    CONSTRAINT fk_user_choiced_disciplines_discipline
-                        FOREIGN KEY (discipline_id) REFERENCES public.choiced_disciplines(id)
-                        ON DELETE CASCADE
-                )
-            """)
-
-            cur.execute("""
-                CREATE INDEX IF NOT EXISTS idx_user_choiced_disciplines_user_id
-                ON public.user_choiced_disciplines (user_id)
-            """)
-
-            if not os.path.exists(csv_path):
-                raise FileNotFoundError(f"CSV file not found: {csv_path}")
-
-            with open(csv_path, "r", encoding="utf-8-sig", newline="") as csv_file:
-                reader = csv.DictReader(csv_file)
-                for row in reader:
-                    name = (row.get("name") or "").strip()
-                    normalized_name = (row.get("normalized_name") or "").strip()
-                    semesters = (row.get("semesters") or "").strip()
-                    source_pages = (row.get("source_pages") or "").strip()
-
-                    if not name and not normalized_name:
-                        continue
-
-                    cur.execute("""
-                        INSERT INTO public.choiced_disciplines (name, normalized_name, semesters, source_pages)
-                        VALUES (%s, %s, %s, %s)
-                        ON CONFLICT (normalized_name)
-                        DO UPDATE SET
-                            name = EXCLUDED.name,
-                            semesters = EXCLUDED.semesters,
-                            source_pages = EXCLUDED.source_pages
-                    """, (name, normalized_name, semesters, source_pages))
-
-            self.con.commit()
-            print(f"Table choiced_disciplines created and filled from: {csv_path}")
-            return True
-
-        except Exception as e:
-            self.con.rollback()
-            print(f"Error creating choiced disciplines table: {e}")
-            return False
-        finally:
-            if cur:
-                cur.close()
+        
 
     def __del__(self):
         """Close the database connection when the manager is destroyed."""

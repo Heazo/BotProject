@@ -4,8 +4,12 @@
 #Спарсить номера всех групп и сопоставить с url адресами
 
 import os
+import time
+
 import requests
 from bs4 import BeautifulSoup
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from Models.session import Session
 from Models.group import Group
@@ -15,6 +19,17 @@ class ParserNARFU:
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
+        self.session = requests.Session()
+        retry = Retry(
+            total=3,
+            backoff_factor=1,
+            status_forcelist=(403, 429, 500, 502, 503, 504),
+            allowed_methods=('GET', 'HEAD'),
+            raise_on_status=False,
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        self.session.mount('http://', adapter)
+        self.session.mount('https://', adapter)
 
     def get_all_rasp(self, url: str) -> list[Session]:
         """Getting a full list of all session for 4 weeks"""
@@ -28,9 +43,14 @@ class ParserNARFU:
         #     file.write(html_result)
 
         soup, html_result = self.get_access(url)
-       
-        title = soup.find("title").text
-        group_num = title.replace("Группа ", "").replace(". Расписание САФУ","")
+        if soup is None:
+            return []
+
+        title = soup.find("title")
+        if title is None:
+            return []
+
+        group_num = title.text.replace("Группа ", "").replace(". Расписание САФУ", "")
 
 
 
@@ -90,23 +110,24 @@ class ParserNARFU:
         return sessions_list
 
     def get_access(self, url: str):
-        response = requests.get(url, headers=self.headers)
-        response.encoding = response.apparent_encoding
-        html_result  = response.text
-        soup = None
-
-        if response.status_code == 200:
-            print("Successful get request: ", response.status_code)
+        try:
+            response = self.session.get(url, headers=self.headers, timeout=15)
+            response.raise_for_status()
+            response.encoding = response.apparent_encoding or 'utf-8'
+            html_result = response.text
             soup = BeautifulSoup(html_result, 'html.parser')
-            title = soup.title.text
-            print("title: ", title)
+            title = soup.find('title')
+            if title is not None:
+                print("title: ", title.get_text(strip=True))
             return soup, html_result
-        else :
-            print("Err get request: ", response.status_code)
-            return
+        except requests.RequestException as exc:
+            print(f"Err get request: {url} - {exc}")
+            return None, ""
 
     def find_groups(self, url = "https://ruz.narfu.ru/")->list[Group]:       #-> list[Group]
         soup, html_result = self.get_access(url)
+        if soup is None:
+            return []
 
         #institutions = soup.find_all('div', {"class": "hidden-xs col-sm-4 col-md-3 institution_button"})
 
@@ -120,11 +141,14 @@ class ParserNARFU:
         institutions_urls = list(set(institutions_urls))
 
         for institution_url in institutions_urls:
-
+            time.sleep(0.5)
             insts_soup, html_result = self.get_access(url + institution_url)
+            if insts_soup is None:
+                continue
 
             group_buttons = insts_soup.find_all("div", {"class": "group_button"})
-            own_institution = insts_soup.find("h4", {"class": "visible-xs visible-sm"}).text
+            own_institution_elem = insts_soup.find("h4", {"class": "visible-xs visible-sm"})
+            own_institution = own_institution_elem.text if own_institution_elem is not None else ""
 
             # file_name = own_institution + ".html"
             # if os.path.exists(file_name):

@@ -8,13 +8,27 @@ from TimetableProvider.DB_Manager import DB_Manager
 
 def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=None) -> list[str]:
 
-    # datetime.now()
-    my_date = datetime(2026, 6, 8)
+    #my_date = datetime.now()
+    my_date = datetime(2026, 6, 8, 17, 30)
     # date = my_date.strftime("%d.%m.%Y")
     target_date = my_date + timedelta(days=day_offset)
     date_str = target_date.strftime("%d.%m.%Y")
     
+    #Сначала проверим дату последнего обновления расписания в базе данных, если обновлений давно небыло, парсим заново
+    #Не удалять! Раскомментировать когда появится росписание на сайте!
+    # parser = ParserNARFU()
+    # last_update = db_manager.getLastUpdateForGroup(group_num)
+    # if last_update is None:
+    #     sessions = parser.get_all_rasp(db_manager.getURLForGroup(group_num))
+    #     db_manager.insertSessions(sessions)     ##А если parser.get_all_rasp() выдаст None???   #Сделать отправку отчёта если None
+    # elif my_date - last_update >= timedelta(hours=6):
+    #     sessions = parser.get_all_rasp(db_manager.getURLForGroup(group_num))
+    #     if sessions is not None:
+    #         db_manager.replaceSessionsForGroup(group_num, sessions)
+    # else:
+    #     sessions = db_manager.getSessionsFromDB(date_str, group_num=group_num)
     sessions = db_manager.getSessionsFromDB(date_str, group_num=group_num)
+
 
     # Добавляем заголовок с датой
     day_names = {
