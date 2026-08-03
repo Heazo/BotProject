@@ -98,9 +98,6 @@ class VKbot_class:
         keyboard.add(Text("Пт", payload={"weekday": 4}))
         keyboard.add(Text("Сб", payload={"weekday": 5}))
         keyboard.add(Text("Вс", payload={"weekday": 6}))
-        keyboard.row()
-        # Кнопка для возврата в главное меню
-        keyboard.add(Text("Назад", payload={"command": "back"}))
         return keyboard
 
     def create_week_selection_keyboard(self):
@@ -114,7 +111,7 @@ class VKbot_class:
             week_end = week_start + timedelta(days=6)
 
             if i == 0:
-                text = "🔵 Текущая неделя"
+                text = "🔵 Эта неделя"
             else:
                 text = f"{week_start.strftime('%d.%m')} - {week_end.strftime('%d.%m')}"
 
@@ -211,9 +208,12 @@ class VKbot_class:
             if result:
                 # После привязки группы тоже показываем клавиатуру
                 kb = self.get_keyboard()
-                await message.answer(f"Группа {group_num} успешно привязана!", keyboard=kb)
+                await message.answer(f"Группа {group_num} успешно привязана! \n"
+                                     f"Теперь Вы можете получать расписание", keyboard=kb)
             else:
-                await message.answer("Ошибка")
+                await message.answer("Ошибка при привязке группы.\n"
+                    "Проверьте правильность номера группы.\n"
+                    "Если ошибка повторяется, обратитесь к администратору.")
 
         @self.bot.on.private_message(text=["Сегодня", "today", "/today"])
         async def today_command(message):
@@ -288,7 +288,7 @@ class VKbot_class:
             elif cmd == "back":
 
                 await message.answer(
-                    "Главное меню",
+                    "Главное меню:",
                     keyboard=self.get_keyboard()
                 )
 

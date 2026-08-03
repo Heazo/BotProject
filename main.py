@@ -20,8 +20,8 @@ def main():
     
     #parser = ParserNARFU()
 
-    #vkbot = VKbot_class(vk_token, db_manager)
-    #vkbot.event_handler()
+    vkbot = VKbot_class(vk_token, db_manager)
+    vkbot.event_handler()
 
     #tgbot = TelegramBotClass(tg_token, db_manager)
     #tgbot.run()

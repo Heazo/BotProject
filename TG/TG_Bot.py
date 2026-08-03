@@ -223,7 +223,7 @@ class TelegramBotClass:
             if result:
                 await message.answer(
                     f"Группа {group_num} успешно привязана!\n\n"
-                    "Теперь вы можете получать расписание:\n"
+                    "Теперь Вы можете получать расписание:\n"
                     "• /today - на сегодня\n"
                     "• /tomorrow - на завтра\n"
                     "• /week - на неделю"
