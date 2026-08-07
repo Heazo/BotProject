@@ -49,34 +49,17 @@ class TelegramBotClass:
         
         await self.bot.send_message(chat_id=user_id, text=msg)
 
-    async def send_rasp_today(self, user_id: int) -> None:
-        """Отправка расписания на сегодня"""
-        
-        group = self.db.getUserGroup(str(user_id))
-        if group:
-            msg = get_rasp_for_day(self.db, day_offset=0, group_num=group[0])
-        else:
-            msg = self.find_group_message
-        if isinstance(msg, list):
-            msg = "\n".join(str(item) for item in msg if item is not None)
-        print(f"Your group: {group}")
-        print(f"send_rasp_today...{msg}")
-        await self.sender(user_id, msg)
-        
+    async def send_rasp(self, user_id: int, day_offset: int) -> None:
+        """Отправка расписания на день (0 - сегодня, 1 - завтра)"""
 
-    async def send_rasp_tomorrow(self, user_id: int) -> None:
-        """Отправка расписания на завтра"""
-        
         group = self.db.getUserGroup(str(user_id))
         if group:
-            msg = get_rasp_for_day(self.db, day_offset=1, group_num=group[0])
+            msg = get_rasp_for_day(self.db, day_offset=day_offset, group_num=group[0])
         else:
             msg = self.find_group_message
-        
         if isinstance(msg, list):
             msg = "\n".join(str(item) for item in msg if item is not None)
         await self.sender(user_id, msg)
-        print(f"send_rasp_tomorrow...{msg}")
 
     async def send_rasp_weekday(self, user_id: int, weekday: int, week_offset: int = 0) -> None:
         """Отправка расписания на конкретный день недели с учетом смещения недели"""
@@ -101,7 +84,7 @@ class TelegramBotClass:
         """Создание клавиатуры для выбора недели"""
         
         week_options = []
-        for i in range(4):
+        for i in range(6):
             week_num = current_week_offset + i
             # datetime.now()
             now = datetime(2026, 6, 8)
@@ -238,12 +221,12 @@ class TelegramBotClass:
         # Обработчик команды /today
         @self.dp.message(Command("today"))
         async def today_command(message: types.Message):
-            await self.send_rasp_today(message.from_user.id)
+            await self.send_rasp(message.from_user.id, 0)
 
         # Обработчик команды /tomorrow
         @self.dp.message(Command("tomorrow"))
         async def tomorrow_command(message: types.Message):
-            await self.send_rasp_tomorrow(message.from_user.id)
+            await self.send_rasp(message.from_user.id, 1)
 
         for command_name, weekday_num in weekday_commands.items():
             @self.dp.message(Command(command_name))

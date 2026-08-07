@@ -23,10 +23,12 @@ class VKbot_class:
             keyboard=keyboard.get_json() if keyboard else None
         )
 
-    async def send_rasp_today(self, user_id: int) -> None:
+    async def send_rasp(self, user_id: int, day_offset: int) -> None:
+        """Отправка расписания на день (0 - сегодня, 1 - завтра)"""
+
         group = self.db.getUserGroup(str(user_id))
         if group:
-            msg = get_rasp_for_day(self.db, day_offset=0, group_num=group[0])
+            msg = get_rasp_for_day(self.db, day_offset=day_offset, group_num=group[0])
         else:
             msg = self.find_group_message
         if isinstance(msg, list):
@@ -35,24 +37,6 @@ class VKbot_class:
         # Отправляем расписание вместе с клавиатурой
         kb = self.get_keyboard()
         await self.sender(user_id, msg, kb)
-        print(f"Your group: {group}")
-        print(f"send_rasp_today...{msg}")
-
-    async def send_rasp_tomorrow(self, user_id: int) -> None:
-        group = self.db.getUserGroup(str(user_id))
-        if group:
-            msg = get_rasp_for_day(self.db, day_offset=1, group_num=group[0])
-        else:
-            msg = self.find_group_message
-
-        if isinstance(msg, list):
-            msg = "\n".join(str(item) for item in msg if item is not None)
-
-        # Отправляем расписание вместе с клавиатурой
-        kb = self.get_keyboard()
-        await self.sender(user_id, msg, kb)
-        print(f"Your group: {group}")
-        print(f"send_rasp_tomorrow...{msg}")
 
     async def send_rasp_weekday(self, user_id: int, weekday: int, week_offset: int = 0) -> None:
         """Отправка расписания на конкретный день недели с учетом смещения недели"""
@@ -106,7 +90,7 @@ class VKbot_class:
         now = datetime(2026, 6, 8)
         start_of_week = now - timedelta(days=now.weekday())
 
-        for i in range(4):
+        for i in range(6):
             week_start = start_of_week + timedelta(weeks=i)
             week_end = week_start + timedelta(days=6)
 
@@ -217,11 +201,11 @@ class VKbot_class:
 
         @self.bot.on.private_message(text=["Сегодня", "today", "/today"])
         async def today_command(message):
-            await self.send_rasp_today(message.from_id)
+            await self.send_rasp(message.from_id, 0)
 
         @self.bot.on.private_message(text=["Завтра", "tomorrow", "/tomorrow"])
         async def tomorrow_command(message):
-            await self.send_rasp_tomorrow(message.from_id)
+            await self.send_rasp(message.from_id, 1)
 
         @self.bot.on.private_message(text=["День недели", "weekday", "/weekday"])
         async def weekday_command(message):
