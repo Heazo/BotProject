@@ -1,6 +1,15 @@
 # Polaris bot
 A messanger bot for get individual lesson schedule.
 
+## Dependencies :dizzy:
+- vkbottle
+- aiogram
+- requests
+- beautifulsoup4
+- asyncpg
+- sphinx
+- thefuzz
+
 ## Installation
 
 The project uses `pyproject.toml` as the dependency manifest:
