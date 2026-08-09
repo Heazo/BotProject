@@ -3,6 +3,9 @@ from TimetableProvider.DB_Manager import DB_Manager
 from vkbottle import Bot, Keyboard, Text
 from datetime import datetime, timedelta
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class VKbot_class:
@@ -10,7 +13,7 @@ class VKbot_class:
         self.bot = Bot(token=m_token)
         self.api = self.bot.api
         self.db = db_manager
-        print("Initializing VK Bot\n")
+        logger.info("Initializing VK Bot")
         self._register_handlers()
         self.find_group_message = "Пожалуйста, укажите номер группы.\nПример: /search 123456"
 

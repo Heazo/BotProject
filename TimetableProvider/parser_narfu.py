@@ -5,6 +5,7 @@
 
 import os
 import time
+import logging
 
 import requests
 from bs4 import BeautifulSoup
@@ -13,6 +14,8 @@ from urllib3.util.retry import Retry
 
 from Models.session import Session
 from Models.group import Group
+
+logger = logging.getLogger(__name__)
 
 class ParserNARFU:
     def __init__(self):
@@ -35,7 +38,7 @@ class ParserNARFU:
         """Getting a full list of all session for 4 weeks"""
 
         #lite-mode; hard-mode; extra-mode; ultra-extra-mod | парсим один день, парсим неделю, парсим все доступные недели, парсим весь сайт
-        print("requestNarfu")
+        logger.info("Requesting timetable from NARFU")
         #создать таблицу соответствующих url адресов и групп
 
 
@@ -91,7 +94,6 @@ class ParserNARFU:
 
                 # Пропускаем если нет важных элементов
                 if not all([num_elem, time_elem, discipline_elem]):
-                    # print(f"None session")
                     continue
 
                 sessions_list.append(
@@ -118,10 +120,10 @@ class ParserNARFU:
             soup = BeautifulSoup(html_result, 'html.parser')
             title = soup.find('title')
             if title is not None:
-                print("title: ", title.get_text(strip=True))
+                logger.info("NARFU response title: %s", title.get_text(strip=True))
             return soup, html_result
         except requests.RequestException as exc:
-            print(f"Err get request: {url} - {exc}")
+            logger.error("NARFU request failed for %s: %s", url, exc)
             return None, ""
 
     def find_groups(self, url = "https://ruz.narfu.ru/")->list[Group]:       #-> list[Group]
@@ -152,11 +154,9 @@ class ParserNARFU:
 
             # file_name = own_institution + ".html"
             # if os.path.exists(file_name):
-            #     print(f"Файл {file_name} уже существует")
             #     with open(file_name, "r") as file:
             #         file.read(html_result)
             # else:
-            #     print(f"Файл {file_name} не найден, создаю...")
             #     with open(file_name, "w") as file:
             #         file.write(html_result)
 

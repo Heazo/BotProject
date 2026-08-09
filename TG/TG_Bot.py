@@ -5,9 +5,12 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 import asyncio
+import logging
 from datetime import datetime, timedelta
 from TimetableProvider.TimetableCreator import get_rasp_for_day, get_rasp_for_date
 from TimetableProvider.DB_Manager import DB_Manager
+
+logger = logging.getLogger(__name__)
 
 
 # Определяем состояния для FSM
@@ -22,7 +25,7 @@ class TelegramBotClass:
         self.dp = Dispatcher(storage=self.storage)
         self.db = db_manager
         self.week_offset = 0  # Храним выбранную неделю
-        print("Initializing Telegram Bot\n")
+        logger.info("Initializing Telegram Bot")
         self._register_handlers()
         self.find_group_message = "Пожалуйста, укажите номер группы.\nПример: /search 123456"
 
@@ -42,7 +45,7 @@ class TelegramBotClass:
             BotCommand(command="sunday", description="Расписание на воскресенье")
         ]
         await self.bot.set_my_commands(commands)
-        print("Commands set successfully!")
+        logger.info("Commands set successfully")
 
     async def sender(self, user_id: int, msg: str) -> None:
         """Отправка сообщения пользователю"""
@@ -297,7 +300,7 @@ class TelegramBotClass:
         """Запуск бота в режиме polling"""
         
         await self.set_commands()  # Устанавливаем команды ПЕРЕД запуском
-        print("Bot started polling...")
+        logger.info("Bot started polling")
         await self.dp.start_polling(self.bot)
 
     def run(self) -> None:

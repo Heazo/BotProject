@@ -34,7 +34,6 @@ async def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=Non
     }
     day_name = day_names.get(day_offset, target_date.strftime("%d.%m.%Y"))
 
-    # print(sessions)
     if sessions is None:
         return [f"⚠️ Произошла ошибка при получении расписания на {day_name} ({date_str}).\nПожалуйста, попробуйте позже."]
     else:
@@ -69,20 +68,15 @@ async def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=Non
     #db_rasp = getRaspFromDB()
 
     # if db_rasp is None:
-    #     print("No Rasp Err\n")
     #     db_rasp = ""
     #     #Сделать функции парсера
     #     #Обращаемся к парсеру, если после парса все равно None - выводим ошибку
     #     parser = ParserNARFU()
     #     sessions = parser.get_all_rasp("https://ruz.narfu.ru/?timetable&group=19439")
-    #     print("Количество пар всего: ",len(sessions))
     #     i = 0
     #     for session in sessions:
     #         i = i + 1
     #         db_rasp = db_rasp + str(session.date) + " " + str(session.num_session) + " " + str(session.discipline) + "\n"
-    #         print("Дата: ", session.date)
-    #         print("Номер пары: " ,session.num_session)
-    #         print("Предмет: ", session.discipline)
     #         if i == 10:
     #             break
     #!return db_rasp

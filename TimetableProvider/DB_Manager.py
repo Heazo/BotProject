@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from collections.abc import Sequence
 from typing import Any
 
@@ -7,6 +8,8 @@ from thefuzz import fuzz
 
 from Models.group import Group
 from Models.session import Session
+
+logger = logging.getLogger(__name__)
 
 
 class DB_Manager:
@@ -30,14 +33,14 @@ class DB_Manager:
         async with self._pool_lock:
             if self.pool is None:
                 self.pool = await asyncpg.create_pool(**self._connection_params)
-                print("Database is connected.")
+                logger.info("Database is connected.")
 
     async def close(self) -> None:
         """Close all connections in the pool."""
         if self.pool is not None:
             await self.pool.close()
             self.pool = None
-            print("Database connection closed.")
+            logger.info("Database connection closed.")
 
     async def _ensure_pool(self) -> asyncpg.Pool:
         await self.connect()
@@ -86,7 +89,7 @@ class DB_Manager:
                     )
                 return [dict(row) for row in rows]
         except asyncpg.PostgresError as exc:
-            print(f"Ошибка БД: {exc}")
+            logger.error("Ошибка БД: %s", exc)
             return None
 
     async def getLastUpdateForGroup(self, group_num: str) -> Any:
@@ -104,7 +107,7 @@ class DB_Manager:
                     group_num,
                 )
         except asyncpg.PostgresError as exc:
-            print(f"Error retrieving last update for group {group_num}: {exc}")
+            logger.error("Error retrieving last update for group %s: %s", group_num, exc)
             return None
 
     async def getURLForGroup(self, group_num: str) -> str | None:
@@ -118,7 +121,7 @@ class DB_Manager:
                     group_num,
                 )
         except asyncpg.PostgresError as exc:
-            print(f"Error retrieving URL for group {group_num}: {exc}")
+            logger.error("Error retrieving URL for group %s: %s", group_num, exc)
             return None
 
     async def getGroupsFromDB(self) -> list[Group]:
@@ -175,7 +178,7 @@ class DB_Manager:
         self, group_num: str, sessions: Sequence[Session]
     ) -> bool:
         if not group_num:
-            print("Invalid group number")
+            logger.warning("Invalid group number")
             return False
 
         pool = await self._ensure_pool()
@@ -211,7 +214,7 @@ class DB_Manager:
                         await connection.executemany(query, values)
             return True
         except asyncpg.PostgresError as exc:
-            print(f"Error replacing sessions for group {group_num}: {exc}")
+            logger.error("Error replacing sessions for group %s: %s", group_num, exc)
             return False
 
     async def insertGroups(self, groups: Sequence[Group]) -> None:
@@ -248,10 +251,10 @@ class DB_Manager:
                 )
             return True
         except asyncpg.ForeignKeyViolationError:
-            print(f"Error: Group {group_num} does not exist in groups table")
+            logger.error("Group %s does not exist in groups table", group_num)
             return False
         except asyncpg.PostgresError as exc:
-            print(f"Database error: {exc}")
+            logger.error("Database error: %s", exc)
             return False
 
     async def getUserDisciplines(self, user_id: str) -> list[dict[str, Any]]:
@@ -271,7 +274,7 @@ class DB_Manager:
                 )
             return [dict(row) for row in rows]
         except asyncpg.PostgresError as exc:
-            print(f"Error retrieving user disciplines: {exc}")
+            logger.error("Error retrieving user disciplines: %s", exc)
             return []
 
     async def addUserDiscipline(self, user_id: str, discipline_id: int) -> bool:
@@ -289,7 +292,7 @@ class DB_Manager:
                 )
             return True
         except asyncpg.PostgresError as exc:
-            print(f"Database error: {exc}")
+            logger.error("Database error: %s", exc)
             return False
 
     @staticmethod
@@ -325,7 +328,7 @@ class DB_Manager:
                     """
                 )
         except asyncpg.PostgresError as exc:
-            print(f"Error searching discipline: {exc}")
+            logger.error("Error searching discipline: %s", exc)
             return None
 
         best_match = None
@@ -363,7 +366,7 @@ class DB_Manager:
                     discipline_name,
                 )
                 if discipline_id is None:
-                    print(f"Discipline not found: {discipline_name}")
+                    logger.warning("Discipline not found: %s", discipline_name)
                     return False
                 await connection.execute(
                     """
@@ -376,5 +379,5 @@ class DB_Manager:
                 )
             return True
         except asyncpg.PostgresError as exc:
-            print(f"Error adding chosen discipline for user: {exc}")
+            logger.error("Error adding chosen discipline for user: %s", exc)
             return False

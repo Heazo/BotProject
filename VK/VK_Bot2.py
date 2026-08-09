@@ -10,7 +10,6 @@
 #         self.vk_session = vk_api.VkApi(token=m_token)
 #         self.session = self.vk_session.get_api()
 #         self.longpoll = VkLongPoll(self.vk_session)
-#         print("Initializing VK Bot\n")
 #
 #
 #     def sender(self, id, msg):
@@ -19,7 +18,6 @@
 #     def send_rasp(self, id):
 #         msg = get_unique_rasp()
 #         self.sender(id, msg)
-#         print(f"send_rasp...{msg}")
 #
 #     def event_handler(self):
 #         for event in self.longpoll.listen():
