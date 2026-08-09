@@ -26,9 +26,9 @@ class VKbot_class:
     async def send_rasp(self, user_id: int, day_offset: int) -> None:
         """Отправка расписания на день (0 - сегодня, 1 - завтра)"""
 
-        group = self.db.getUserGroup(str(user_id))
+        group = await self.db.getUserGroup(str(user_id))
         if group:
-            msg = get_rasp_for_day(self.db, day_offset=day_offset, group_num=group[0])
+            msg = await get_rasp_for_day(self.db, day_offset=day_offset, group_num=group[0])
         else:
             msg = self.find_group_message
         if isinstance(msg, list):
@@ -41,7 +41,7 @@ class VKbot_class:
     async def send_rasp_weekday(self, user_id: int, weekday: int, week_offset: int = 0) -> None:
         """Отправка расписания на конкретный день недели с учетом смещения недели"""
 
-        group = self.db.getUserGroup(str(user_id))
+        group = await self.db.getUserGroup(str(user_id))
         if group:
             #datetime.now()
             now = datetime(2026, 6, 8)
@@ -49,7 +49,7 @@ class VKbot_class:
             target_week_start = start_of_week + timedelta(weeks=week_offset)
             target_date = target_week_start + timedelta(days=weekday)
 
-            msg = get_rasp_for_date(self.db, target_date, group_num=group[0])
+            msg = await get_rasp_for_date(self.db, target_date, group_num=group[0])
         else:
             msg = self.find_group_message
 
@@ -188,7 +188,7 @@ class VKbot_class:
         @self.bot.on.private_message(text="/search <group_num>")
         async def search_handler(message, group_num: str):
             user_id = str(message.from_id)
-            result = db.insertUserAndGroup(user_id, group_num, "vk")
+            result = await db.insertUserAndGroup(user_id, group_num, "vk")
             if result:
                 # После привязки группы тоже показываем клавиатуру
                 kb = self.get_keyboard()

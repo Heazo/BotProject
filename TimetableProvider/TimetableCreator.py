@@ -1,12 +1,9 @@
 #Будет создавать индивидуальное расписание, обращаясь к DB_Manager
 
 from datetime import datetime, timedelta
-from html import parser
-
-from TimetableProvider.parser_narfu import ParserNARFU
 from TimetableProvider.DB_Manager import DB_Manager
 
-def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=None) -> list[str]:
+async def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=None) -> list[str]:
 
     #my_date = datetime.now()
     my_date = datetime(2026, 6, 8, 17, 30)
@@ -27,7 +24,7 @@ def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=None) -> 
     #         db_manager.replaceSessionsForGroup(group_num, sessions)
     # else:
     #     sessions = db_manager.getSessionsFromDB(date_str, group_num=group_num)
-    sessions = db_manager.getSessionsFromDB(date_str, group_num=group_num)
+    sessions = await db_manager.getSessionsFromDB(date_str, group_num=group_num)
 
 
     # Добавляем заголовок с датой
@@ -90,10 +87,10 @@ def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=None) -> 
     #             break
     #!return db_rasp
 
-def get_rasp_for_day(db_manager: DB_Manager, day_offset, group_num) -> list[str]:
-    return create_unique_rasp(db_manager, day_offset, group_num)
+async def get_rasp_for_day(db_manager: DB_Manager, day_offset, group_num) -> list[str]:
+    return await create_unique_rasp(db_manager, day_offset, group_num)
 
-def get_rasp_for_date(db_manager: DB_Manager, date: datetime, group_num: str = None) -> list[str]:
+async def get_rasp_for_date(db_manager: DB_Manager, date: datetime, group_num: str = None) -> list[str]:
     """
     Получить расписание на конкретную дату.
 
@@ -106,7 +103,7 @@ def get_rasp_for_date(db_manager: DB_Manager, date: datetime, group_num: str = N
         list[str]: расписание в виде списка строк
     """
     date_str = date.strftime("%d.%m.%Y")
-    sessions = db_manager.getSessionsFromDB(date_str, group_num=group_num)
+    sessions = await db_manager.getSessionsFromDB(date_str, group_num=group_num)
 
     # Название дня недели
     weekdays_ru = {

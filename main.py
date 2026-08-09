@@ -20,11 +20,11 @@ def main():
     
     #parser = ParserNARFU()
 
-    vkbot = VKbot_class(vk_token, db_manager)
-    vkbot.event_handler()
+    #vkbot = VKbot_class(vk_token, db_manager)
+    #vkbot.event_handler()
 
-    # tgbot = TelegramBotClass(tg_token, db_manager)
-    # tgbot.run()
+    tgbot = TelegramBotClass(tg_token, db_manager)
+    tgbot.run()
 
     #Сделать проверку на то что ничего не нашлось, и тогда напишем об этом пользователю
     #disp = "Имструменты анализа данных"

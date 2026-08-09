@@ -1,228 +1,160 @@
-#будет получать дату (например завтрашнюю) по которой будет делать запрос в БД и возвращать список кортежей
-import csv
-import os
+import asyncio
+from collections.abc import Sequence
+from typing import Any
 
-import psycopg2
-from psycopg2.extras import RealDictCursor
-from thefuzz import fuzz, process
-from Models.session import Session
+import asyncpg
+from thefuzz import fuzz
+
 from Models.group import Group
+from Models.session import Session
+
 
 class DB_Manager:
-    """Database manager for PostgreSQL-backed session and group data.
-
-    This class wraps a PostgreSQL connection and provides methods for retrieving
-    sessions and groups, as well as inserting sessions, groups, and user-group
-    associations.
-    """
+    """Asynchronous PostgreSQL access layer backed by an asyncpg pool."""
 
     def __init__(self, host: str, port: int, dbname: str, user: str, password: str):
-        """Initialize the manager and open a database connection.
-        Args:
-            host (str): PostgreSQL server host (for example, 'localhost').
-            port (int): PostgreSQL server port (usually 5432).
-            dbname (str): Name of the target database.
-            user (str): Database user name.
-            password (str): Database user password.
-        """
+        self._connection_params = {
+            "host": host,
+            "port": port,
+            "database": dbname,
+            "user": user,
+            "password": password,
+        }
+        self.pool: asyncpg.Pool | None = None
+        self._pool_lock = asyncio.Lock()
 
-        try:
-            self.con = psycopg2.connect(
-                host=host,
-                port=port,
-                dbname=dbname,
-                user=user,
-                password=password)
-            print("Database is connected.")
-        except Exception as e:
-            print(f"Error connecting to database: {e}")
-            self.con = None
-
-    def connectDB(self, host: str, port: int, dbname: str, user: str, password: str):
-        """Connect to the database if a connection is not already open.
-
-        Args:
-            host (str): PostgreSQL server host.
-            port (int): PostgreSQL server port.
-            dbname (str): Name of the target database.
-            user (str): Database user name.
-            password (str): Database user password.
-        """
-
-        if self.con:
-            print("The database is already connected.")
-        else:
-            try:
-                self.con = psycopg2.connect(
-                    host=host,
-                    port=port,
-                    dbname=dbname,
-                    user=user,
-                    password=password)
+    async def connect(self) -> None:
+        """Create the connection pool if it has not been created yet."""
+        if self.pool is not None:
+            return
+        async with self._pool_lock:
+            if self.pool is None:
+                self.pool = await asyncpg.create_pool(**self._connection_params)
                 print("Database is connected.")
-            except Exception as e:
-                print(f"Error connecting to database: {e}")
-                self.con = None
 
-    def getSessionsFromDB(self, date: str, group_num: str = None) -> list[dict]:
-        """Retrieve sessions for a specific date.
+    async def close(self) -> None:
+        """Close all connections in the pool."""
+        if self.pool is not None:
+            await self.pool.close()
+            self.pool = None
+            print("Database connection closed.")
 
-        Args:
-            date (str): Date string used to filter sessions in the database.
-            group_num (str, optional): Group number to further filter sessions.
+    async def _ensure_pool(self) -> asyncpg.Pool:
+        await self.connect()
+        if self.pool is None:
+            raise RuntimeError("Database connection pool is not initialized")
+        return self.pool
 
-        Returns:
-            list[dict]: A list of rows from the sessions table as dictionaries.
-        """
+    async def connectDB(
+        self, host: str, port: int, dbname: str, user: str, password: str
+    ) -> None:
+        """Update connection settings and establish the pool."""
+        await self.close()
+        self._connection_params = {
+            "host": host,
+            "port": port,
+            "database": dbname,
+            "user": user,
+            "password": password,
+        }
+        await self.connect()
 
+    async def getSessionsFromDB(
+        self, date: str, group_num: str | None = None
+    ) -> list[dict[str, Any]] | None:
+        pool = await self._ensure_pool()
         try:
-            cur = self.con.cursor(cursor_factory=RealDictCursor)
-
-            if group_num:
-                result = cur.execute("""SELECT * FROM public.sessions WHERE date = %s AND group_num = %s
-                                        ORDER BY id ASC""", (date, group_num))
-            else:
-                result = cur.execute("""SELECT * FROM public.sessions WHERE date = %s
-                                        ORDER BY id ASC""", (date,))
-            
-            # cur.execute("""SELECT * FROM public.sessions
-            #                         ORDER BY id ASC""")
-            result = cur.fetchall()
-            cur.close()
-
-            return result
-
-        except Exception as e:
-            print(f"Ошибка БД: {e}")
+            async with pool.acquire() as connection:
+                if group_num:
+                    rows = await connection.fetch(
+                        """
+                        SELECT * FROM public.sessions
+                        WHERE date = $1 AND group_num = $2
+                        ORDER BY id ASC
+                        """,
+                        date,
+                        group_num,
+                    )
+                else:
+                    rows = await connection.fetch(
+                        """
+                        SELECT * FROM public.sessions
+                        WHERE date = $1
+                        ORDER BY id ASC
+                        """,
+                        date,
+                    )
+                return [dict(row) for row in rows]
+        except asyncpg.PostgresError as exc:
+            print(f"Ошибка БД: {exc}")
             return None
 
-    def getLastUpdateForGroup(self, group_num: str):
-        """Return the most recent update timestamp for a specific group.
-
-        Args:
-            group_num (str): Group number to query in the sessions table.
-
-        Returns:
-            datetime.datetime | datetime.date | None: Latest value from the
-            updated_at column, or None if no rows are found.
-        """
-        if not self.con or not group_num:
+    async def getLastUpdateForGroup(self, group_num: str) -> Any:
+        if not group_num:
             return None
-
-        cur = self.con.cursor()
+        pool = await self._ensure_pool()
         try:
-            cur.execute(
-                """
-                SELECT MAX(updated_at) AS last_update
-                FROM public.sessions
-                WHERE group_num = %s
-                """,
-                (group_num,)
-            )
-            result = cur.fetchone()
-
-            if not result or result[0] is None:
-                return None
-
-            value = result[0]
-            #if hasattr(value, 'date'):
-                #return value.date()
-            return value
-        except Exception as e:
-            print(f"Error retrieving last update for group {group_num}: {e}")
-            return None
-        finally:
-            cur.close()
-            
-    def getURLForGroup(self, group_num: str) -> str:
-        """Retrieve the URL associated with a specific group.
-
-        Args:
-            group_num (str): Group number to look up in the groups table.
-
-        Returns:
-            str: The URL associated with the group, or None if not found.
-        """
-        if not self.con or not group_num:
+            async with pool.acquire() as connection:
+                return await connection.fetchval(
+                    """
+                    SELECT MAX(updated_at) AS last_update
+                    FROM public.sessions
+                    WHERE group_num = $1
+                    """,
+                    group_num,
+                )
+        except asyncpg.PostgresError as exc:
+            print(f"Error retrieving last update for group {group_num}: {exc}")
             return None
 
-        cur = self.con.cursor()
+    async def getURLForGroup(self, group_num: str) -> str | None:
+        if not group_num:
+            return None
+        pool = await self._ensure_pool()
         try:
-            cur.execute("""SELECT url FROM public.groups WHERE group_num = %s""", (group_num,))
-            result = cur.fetchone()
-            if result:
-                return result[0]
-            else:
-                return None
-        except Exception as e:
-            print(f"Error retrieving URL for group {group_num}: {e}")
+            async with pool.acquire() as connection:
+                return await connection.fetchval(
+                    "SELECT url FROM public.groups WHERE group_num = $1",
+                    group_num,
+                )
+        except asyncpg.PostgresError as exc:
+            print(f"Error retrieving URL for group {group_num}: {exc}")
             return None
-        finally:
-            cur.close()
 
-    def getGroupsFromDB(self) -> list[Group]:
-        """Retrieve all groups from the database.
-
-        Returns:
-            list[Group]: A list of Group objects loaded from the groups table.
-        """
-
-        cur = self.con.cursor()
-        cur.execute("""SELECT * FROM public.groups""")
-        result = cur.fetchall()
-        cur.close()
-
-        groups = []
-        for row in result:
-            group = Group(
+    async def getGroupsFromDB(self) -> list[Group]:
+        pool = await self._ensure_pool()
+        async with pool.acquire() as connection:
+            rows = await connection.fetch("SELECT * FROM public.groups")
+        return [
+            Group(
                 group_num=row[0],
                 speciality=row[1],
                 profile=row[2],
                 url=row[3],
-                institution=row[4]
+                institution=row[4],
             )
-            groups.append(group)
+            for row in rows
+        ]
 
-        return groups
-    
-    def getUserGroup(self, user_id: str) -> str:
-        """Retrieve the group number associated with a specific user.
+    async def getUserGroup(self, user_id: str) -> tuple[Any, ...] | None:
+        pool = await self._ensure_pool()
+        async with pool.acquire() as connection:
+            row = await connection.fetchrow(
+                "SELECT group_num FROM public.users WHERE user_id = $1",
+                user_id,
+            )
+        return tuple(row) if row else None
 
-        Args:
-            user_id (str): User identifier to look up in the users table.
-
-        Returns:
-            str: The group number associated with the user, or None if not found.
+    async def insertSessions(self, sessions: Sequence[Session]) -> None:
+        pool = await self._ensure_pool()
+        query = """
+            INSERT INTO sessions
+                (num_session, time_session, kind_of_work, discipline,
+                 auditorium, group_thread, group_num, day_of_week, date)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         """
-
-        cur = self.con.cursor()
-        cur.execute("""SELECT group_num FROM public.users WHERE user_id = %s""", (user_id,))
-        result = cur.fetchone()
-        cur.close()
-
-        if result:
-            return result
-        else:
-            return None
-
-    def F1(self):
-        print("F1 !!!!!!!!!!!!!!")
-
-    def insertSessions(self, sessions: list[Session]):
-        """Insert a batch of session records into the database.
-
-        Args:
-            sessions (list[Session]): Session objects to insert into the sessions table.
-        """
-        cur = self.con.cursor()
-        insert_query = """
-            INSERT INTO sessions 
-                (num_session, time_session, kind_of_work, discipline, 
-                auditorium, group_thread, group_num, day_of_week, date)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """
-        for session in sessions:
-            cur.execute(insert_query, (
+        values = [
+            (
                 session.num_session,
                 session.time_session,
                 session.kindOfWork,
@@ -232,327 +164,217 @@ class DB_Manager:
                 session.group_num,
                 session.day_of_week,
                 session.date,
-            ))
-        self.con.commit()
-        cur.close()
-
-    def replaceSessionsForGroup(self, group_num: str, sessions: list[Session]) -> bool:
-        """Replace all sessions for a group with a new list of sessions.
-
-        Args:
-            group_num (str): Group number whose rows should be replaced.
-            sessions (list[Session]): New session objects for this group.
-
-        Returns:
-            bool: True on success, False on failure.
-        """
-        if not self.con or not group_num:
-            print("Error connecting to database or invalid group number")
-            return False
-
-        cur = self.con.cursor()
-        try:
-            cur.execute(
-                "DELETE FROM public.sessions WHERE group_num = %s",
-                (group_num,)
             )
+            for session in sessions
+        ]
+        async with pool.acquire() as connection:
+            async with connection.transaction():
+                await connection.executemany(query, values)
 
-            if sessions:
-                insert_query = """
-                    INSERT INTO sessions 
-                        (num_session, time_session, kind_of_work, discipline,
-                        auditorium, group_thread, group_num, day_of_week, date, is_choiced)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """
-                cur.executemany(insert_query, [
-                    (
-                        session.num_session,
-                        session.time_session,
-                        session.kindOfWork,
-                        session.discipline,
-                        session.auditorium,
-                        session.group_thread,
-                        session.group_num,
-                        session.day_of_week,
-                        session.date,
-                        session.is_choiced,
-                    )
-                    for session in sessions
-                ])
-
-            self.con.commit()
-            return True
-        except Exception as e:
-            self.con.rollback()
-            print(f"Error replacing sessions for group {group_num}: {e}")
+    async def replaceSessionsForGroup(
+        self, group_num: str, sessions: Sequence[Session]
+    ) -> bool:
+        if not group_num:
+            print("Invalid group number")
             return False
-        finally:
-            if cur:
-                cur.close()
 
-    def insertGroups(self, groups: list[Group]):
-        """Insert groups into the database, ignoring duplicates.
-
-        Args:
-            groups (list[Group]): Group objects to insert into the groups table.
+        pool = await self._ensure_pool()
+        query = """
+            INSERT INTO sessions
+                (num_session, time_session, kind_of_work, discipline,
+                 auditorium, group_thread, group_num, day_of_week, date, is_choiced)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         """
-        if not self.con:
-            print("Error connecting to database")
-            return
+        values = [
+            (
+                session.num_session,
+                session.time_session,
+                session.kindOfWork,
+                session.discipline,
+                session.auditorium,
+                session.group_thread,
+                session.group_num,
+                session.day_of_week,
+                session.date,
+                session.is_choiced,
+            )
+            for session in sessions
+        ]
+        try:
+            async with pool.acquire() as connection:
+                async with connection.transaction():
+                    await connection.execute(
+                        "DELETE FROM public.sessions WHERE group_num = $1",
+                        group_num,
+                    )
+                    if values:
+                        await connection.executemany(query, values)
+            return True
+        except asyncpg.PostgresError as exc:
+            print(f"Error replacing sessions for group {group_num}: {exc}")
+            return False
 
-        cur = self.con.cursor()
-        insert_query = """
+    async def insertGroups(self, groups: Sequence[Group]) -> None:
+        pool = await self._ensure_pool()
+        query = """
             INSERT INTO groups (group_num, speciality, profile, url, institution)
-            VALUES (%s, %s, %s, %s, %s)
+            VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (group_num) DO NOTHING
         """
-        data = [(g.group_num, g.speciality, g.profile, g.url, g.institution) for g in groups]
-        cur.executemany(insert_query, data)
-        self.con.commit()
-        cur.close()
-    
-    #Можно использовать декораторы чтобы сделать код более честым и избавить каждый метод от одних и тех же проверок
-    def insertUserAndGroup(self, user_id: str, group_num: str, platform: str = "tg"):
-        """Insert a user and their associated group into the database.
+        values = [
+            (group.group_num, group.speciality, group.profile, group.url, group.institution)
+            for group in groups
+        ]
+        async with pool.acquire() as connection:
+            async with connection.transaction():
+                await connection.executemany(query, values)
 
-        Args:
-            user_id (str): User identifier to insert into the users table.
-            group_num (str): Group identifier to associate with the user.
-            platform (str): Platform identifier - 'vk' or 'tg' (default: 'vk').
-
-        Returns:
-            bool: True if insertion succeeded, False if an error occurred.
-        """
-        cur = self.con.cursor()
-        
+    async def insertUserAndGroup(
+        self, user_id: str, group_num: str, platform: str = "tg"
+    ) -> bool:
+        pool = await self._ensure_pool()
         try:
-            insert_query = """
-                INSERT INTO users 
-                    (user_id, group_num, platform)
-                VALUES (%s, %s, %s)
-                ON CONFLICT (user_id) 
-                DO UPDATE SET group_num = EXCLUDED.group_num
-            """
-            cur.execute(insert_query, (user_id, group_num, platform))
-            self.con.commit()
-        except psycopg2.errors.UniqueViolation:
-            self.con.rollback()
-            print(f"Error: User \"{user_id}\" already exists")
-            return False
-        except psycopg2.errors.ForeignKeyViolation:
-            self.con.rollback()
+            async with pool.acquire() as connection:
+                await connection.execute(
+                    """
+                    INSERT INTO users (user_id, group_num, platform)
+                    VALUES ($1, $2, $3)
+                    ON CONFLICT (user_id)
+                    DO UPDATE SET group_num = EXCLUDED.group_num
+                    """,
+                    user_id,
+                    group_num,
+                    platform,
+                )
+            return True
+        except asyncpg.ForeignKeyViolationError:
             print(f"Error: Group {group_num} does not exist in groups table")
             return False
-        except psycopg2.Error as e:
-            self.con.rollback()
-            print(f"Database error: {e.pgerror}")
-            print(f"Error code: {e.pgcode}")
+        except asyncpg.PostgresError as exc:
+            print(f"Database error: {exc}")
             return False
-        except Exception as e:
-            self.con.rollback()
-            print(f"Unexpected error: {e}")
-            return False
-        finally:
-            if cur:
-                cur.close()
-        return True
-    
-    def getUserDisciplines(self, user_id: str) -> list[dict]:
-        """Retrieve the list of disciplines chosen by a user.
 
-        Args:
-            user_id (str): User identifier to look up in the user_choiced_disciplines table.
-
-        Returns:
-            list[dict]: A list of dictionaries containing discipline details.
-        """
-        cur = self.con.cursor(cursor_factory=RealDictCursor)
+    async def getUserDisciplines(self, user_id: str) -> list[dict[str, Any]]:
+        pool = await self._ensure_pool()
         try:
-            query = """
-                SELECT cd.id, cd.name, cd.normalized_name, cd.semesters, cd.source_pages
-                FROM public.user_choiced_disciplines ucd
-                JOIN public.choiced_disciplines cd ON ucd.discipline_id = cd.id
-                WHERE ucd.user_id = %s
-            """
-            cur.execute(query, (user_id,))
-            result = cur.fetchall()
-            return result
-        except Exception as e:
-            print(f"Error retrieving user disciplines: {e}")
+            async with pool.acquire() as connection:
+                rows = await connection.fetch(
+                    """
+                    SELECT cd.id, cd.name, cd.normalized_name, cd.semesters,
+                           cd.source_pages
+                    FROM public.user_choiced_disciplines ucd
+                    JOIN public.choiced_disciplines cd
+                      ON ucd.discipline_id = cd.id
+                    WHERE ucd.user_id = $1
+                    """,
+                    user_id,
+                )
+            return [dict(row) for row in rows]
+        except asyncpg.PostgresError as exc:
+            print(f"Error retrieving user disciplines: {exc}")
             return []
-        finally:
-            if cur:
-                cur.close()
-    
-    def addUserDiscipline(self, user_id: str, discipline_id: int):
-        """Add a discipline choice for a user.
 
-        Args:
-            user_id (str): User identifier.
-            discipline_id (int): Discipline identifier.
-
-        Returns:
-            bool: True if insertion succeeded, False if an error occurred.
-        """
-        cur = self.con.cursor()
-
+    async def addUserDiscipline(self, user_id: str, discipline_id: int) -> bool:
+        pool = await self._ensure_pool()
         try:
-            insert_query = """
-                INSERT INTO user_choiced_disciplines (user_id, discipline_id)
-                VALUES (%s, %s)
-                ON CONFLICT (user_id, discipline_id) DO NOTHING
-            """
-            cur.execute(insert_query, (user_id, discipline_id))
-            self.con.commit()
-        except psycopg2.Error as e:
-            self.con.rollback()
-            print(f"Database error: {e.pgerror}")
-            print(f"Error code: {e.pgcode}")
+            async with pool.acquire() as connection:
+                await connection.execute(
+                    """
+                    INSERT INTO user_choiced_disciplines (user_id, discipline_id)
+                    VALUES ($1, $2)
+                    ON CONFLICT (user_id, discipline_id) DO NOTHING
+                    """,
+                    user_id,
+                    discipline_id,
+                )
+            return True
+        except asyncpg.PostgresError as exc:
+            print(f"Database error: {exc}")
             return False
-        except Exception as e:
-            self.con.rollback()
-            print(f"Unexpected error: {e}")
-            return False
-        finally:
-            if cur:
-                cur.close()
-        return True
 
     @staticmethod
     def _normalize_discipline_name(value: str) -> str:
-        """Normalize a discipline name for fuzzy comparison.
-
-        The method reduces punctuation and casing differences, and keeps both
-        Russian and English names comparable in a single search space.
-        """
         if not value:
             return ""
-
         text = value.lower().strip()
         replace_map = {
-            'ё': 'е',
-            'й': 'и',
-            '-': ' ',
-            '_': ' ',
-            '/': ' ',
-            '.': ' ',
-            ',': ' ',
-            ':': ' ',
-            ';': ' ',
-            '(': ' ',
-            ')': ' ',
-            '"': ' ',
-            "'": ' ',
-            '«': ' ',
-            '»': ' ',
-            '\n': ' ',
-            '\t': ' ',
+            "ё": "е", "й": "и", "-": " ", "_": " ", "/": " ", ".": " ",
+            ",": " ", ":": " ", ";": " ", "(": " ", ")": " ", '"': " ",
+            "'": " ", "«": " ", "»": " ", "\n": " ", "\t": " ",
         }
         for old, new in replace_map.items():
             text = text.replace(old, new)
+        return " ".join(text.split())
 
-        return ' '.join(text.split())
-
-    def find_best_discipline(self, discipline_name: str, min_score: int = 75) -> dict | None:
-        """Return the single best match from choiced_disciplines.
-
-        Works with both Russian and English input and uses thefuzz to rank the
-        closest discipline name. If the best score is below the threshold,
-        returns None instead of a random match.
-        """
-        if not self.con or not discipline_name or not discipline_name.strip():
+    async def find_best_discipline(
+        self, discipline_name: str, min_score: int = 75
+    ) -> dict[str, Any] | None:
+        if not discipline_name or not discipline_name.strip():
             return None
-
         query = self._normalize_discipline_name(discipline_name)
         if not query:
             return None
 
-        cur = self.con.cursor(cursor_factory=RealDictCursor)
+        pool = await self._ensure_pool()
         try:
-            cur.execute("""
-                SELECT id, name, normalized_name, semesters, source_pages
-                FROM public.choiced_disciplines
-            """)
-            rows = cur.fetchall()
-
-            best_match = None
-            best_score = 0
-
-            for row in rows:
-                for candidate in (row.get('name'), row.get('normalized_name')):
-                    if not candidate:
-                        continue
-
-                    normalized_candidate = self._normalize_discipline_name(candidate)
-                    if not normalized_candidate:
-                        continue
-
-                    score = max(
-                        fuzz.ratio(query, normalized_candidate),
-                        fuzz.token_set_ratio(query, normalized_candidate),
-                        fuzz.partial_ratio(query, normalized_candidate),
-                    )
-
-                    if score > best_score:
-                        best_score = score
-                        best_match = dict(row)
-
-            if best_match is None or best_score < min_score:
-                return None
-
-            return best_match
-        except Exception as e:
-            print(f"Error searching discipline: {e}")
+            async with pool.acquire() as connection:
+                rows = await connection.fetch(
+                    """
+                    SELECT id, name, normalized_name, semesters, source_pages
+                    FROM public.choiced_disciplines
+                    """
+                )
+        except asyncpg.PostgresError as exc:
+            print(f"Error searching discipline: {exc}")
             return None
-        finally:
-            cur.close()
 
-    def addChosenDisciplineForUser(self, user_id: str, discipline_name: str) -> bool:
-        """Attach a chosen discipline to a user by exact discipline name."""
-        if not self.con:
-            print("Error connecting to database")
-            return False
+        best_match = None
+        best_score = 0
+        for row in rows:
+            row_dict = dict(row)
+            for candidate in (row_dict.get("name"), row_dict.get("normalized_name")):
+                if not candidate:
+                    continue
+                normalized_candidate = self._normalize_discipline_name(candidate)
+                score = max(
+                    fuzz.ratio(query, normalized_candidate),
+                    fuzz.token_set_ratio(query, normalized_candidate),
+                    fuzz.partial_ratio(query, normalized_candidate),
+                )
+                if score > best_score:
+                    best_score = score
+                    best_match = row_dict
+        return best_match if best_match and best_score >= min_score else None
 
-        cur = self.con.cursor()
+    async def addChosenDisciplineForUser(
+        self, user_id: str, discipline_name: str
+    ) -> bool:
+        pool = await self._ensure_pool()
         try:
-            cur.execute(
-                """
-                SELECT id FROM public.choiced_disciplines
-                WHERE LOWER(normalized_name) = LOWER(%s)
-                OR LOWER(name) = LOWER(%s)
-                LIMIT 1
-                """,
-                (discipline_name, discipline_name)
-            )
-            result = cur.fetchone()
-            if not result:
-                print(f"Discipline not found: {discipline_name}")
-                return False
-
-            discipline_id = result[0]
-            cur.execute(
-                """
-                INSERT INTO public.user_choiced_disciplines (user_id, discipline_id)
-                VALUES (%s, %s)
-                ON CONFLICT (user_id, discipline_id) DO NOTHING
-                """,
-                (user_id, discipline_id)
-            )
-            self.con.commit()
+            async with pool.acquire() as connection:
+                discipline_id = await connection.fetchval(
+                    """
+                    SELECT id FROM public.choiced_disciplines
+                    WHERE LOWER(normalized_name) = LOWER($1)
+                       OR LOWER(name) = LOWER($2)
+                    LIMIT 1
+                    """,
+                    discipline_name,
+                    discipline_name,
+                )
+                if discipline_id is None:
+                    print(f"Discipline not found: {discipline_name}")
+                    return False
+                await connection.execute(
+                    """
+                    INSERT INTO public.user_choiced_disciplines (user_id, discipline_id)
+                    VALUES ($1, $2)
+                    ON CONFLICT (user_id, discipline_id) DO NOTHING
+                    """,
+                    user_id,
+                    discipline_id,
+                )
             return True
-        except Exception as e:
-            self.con.rollback()
-            print(f"Error adding chosen discipline for user: {e}")
+        except asyncpg.PostgresError as exc:
+            print(f"Error adding chosen discipline for user: {exc}")
             return False
-        finally:
-            cur.close()
-            
-
-        
-
-    def __del__(self):
-        """Close the database connection when the manager is destroyed."""
-        if self.con:
-            self.con.close()
-            print("Database connection closed.")
-
