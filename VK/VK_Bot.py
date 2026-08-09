@@ -285,3 +285,11 @@ class VKbot_class:
 
     def event_handler(self) -> None:
         self.bot.run()
+
+    async def run_polling(self) -> None:
+        """Run VK polling on the application's existing event loop."""
+        self.bot.loop_wrapper._running = True
+        try:
+            await self.bot.run_polling()
+        finally:
+            self.bot.loop_wrapper._running = False

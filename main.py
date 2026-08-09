@@ -1,40 +1,49 @@
+import asyncio
+import logging
+
+import asyncpg
+
 from TG.TG_Bot import TelegramBotClass
 from VK.VK_Bot import VKbot_class
-#from VK.VK_Bot2 import VKbot_class
-from tokens import vk_token, tg_token, password
-from TimetableProvider.parser_narfu import ParserNARFU
 from TimetableProvider.DB_Manager import DB_Manager
-from datetime import datetime
+from tokens import password, tg_token, vk_token
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 
-def main():
+async def main() -> int:
     db_manager = DB_Manager(
         host="localhost",
         port=5432,
         dbname="studies_db",
         user="postgres",
-        password=password
+        password=password,
     )
-    
-    #13372281337        VvSilv25042026sql
-    
-    #parser = ParserNARFU()
 
-    #vkbot = VKbot_class(vk_token, db_manager)
-    #vkbot.event_handler()
+    try:
+        await db_manager.connect()
+    except (asyncpg.PostgresError, OSError, TimeoutError) as exc:
+        await db_manager.close()
+        logger.error("Не удалось подключиться к PostgreSQL: %s", exc)
+        return 1
 
-    tgbot = TelegramBotClass(tg_token, db_manager)
-    tgbot.run()
+    try:
+        tgbot = TelegramBotClass(tg_token, db_manager)
+        vkbot = VKbot_class(vk_token, db_manager)
 
-    #Сделать проверку на то что ничего не нашлось, и тогда напишем об этом пользователю
-    #disp = "Имструменты анализа данных"
-    #res = db_manager.find_best_discipline(disp)
-    #db_manager.addUserDiscipline("931321821", res['id'])
-    #disciplines = db_manager.getUserDisciplines("931321821")
-    #print(disciplines[0]["name"])
-    #print(disciplines[1]["name"])
+        # Both polling tasks share this event loop and the asyncpg pool.
+        async with asyncio.TaskGroup() as task_group:
+            task_group.create_task(tgbot.run_polling())
+            task_group.create_task(vkbot.run_polling())
+    finally:
+        await db_manager.close()
 
-if __name__ == '__main__':
-   main()
+    return 0
 
 
+if __name__ == "__main__":
+    raise SystemExit(asyncio.run(main()))

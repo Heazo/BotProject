@@ -102,4 +102,14 @@
         sessions = parser.get_all_rasp(group.url)
         db_manager.insertSessions(sessions)
 
-.. todo:: Исправить парс всего сайта целиком.
+Пример добавления индивидуального предмета
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: python
+
+    #Сделать проверку на то что ничего не нашлось, и тогда напишем об этом пользователю
+    #disp = "Имструменты анализа данных"
+    #res = db_manager.find_best_discipline(disp)
+    #db_manager.addUserDiscipline("931321821", res['id'])
+    #disciplines = db_manager.getUserDisciplines("931321821")
+    #print(disciplines[0]["name"])
+    #print(disciplines[1]["name"])
