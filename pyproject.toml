@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "polaris-bot"
+version = "0.1.0"
+description = "Telegram and VK bot for student schedules"
+requires-python = ">=3.11"
+dependencies = [
+    "aiogram>=3.30,<4",
+    "asyncpg>=0.31,<1",
+    "beautifulsoup4>=4.14,<5",
+    "python-dotenv>=1.1,<2",
+    "requests>=2.33,<3",
+    "thefuzz>=0.22,<1",
+    "vkbottle>=4.8,<5",
+]
+
+[tool.setuptools]
+py-modules = ["config", "main"]
+packages = ["TG", "VK", "Models", "TimetableProvider"]

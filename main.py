@@ -3,10 +3,10 @@ import logging
 
 import asyncpg
 
+from config import load_settings
 from TG.TG_Bot import TelegramBotClass
 from VK.VK_Bot import VKbot_class
 from TimetableProvider.DB_Manager import DB_Manager
-from tokens import password, tg_token, vk_token
 
 logging.basicConfig(
     level=logging.INFO,
@@ -16,12 +16,19 @@ logger = logging.getLogger(__name__)
 
 
 async def main() -> int:
+    try:
+        settings = load_settings()
+    except RuntimeError as exc:
+        logger.error("Ошибка конфигурации: %s", exc)
+        return 1
+    logging.getLogger().setLevel(settings.log_level)
+
     db_manager = DB_Manager(
-        host="localhost",
-        port=5432,
-        dbname="studies_db",
-        user="postgres",
-        password=password,
+        host=settings.db_host,
+        port=settings.db_port,
+        dbname=settings.db_name,
+        user=settings.db_user,
+        password=settings.db_password,
     )
 
     try:
@@ -32,10 +39,9 @@ async def main() -> int:
         return 1
 
     try:
-        tgbot = TelegramBotClass(tg_token, db_manager)
-        vkbot = VKbot_class(vk_token, db_manager)
+        tgbot = TelegramBotClass(settings.telegram_token, db_manager)
+        vkbot = VKbot_class(settings.vk_token, db_manager)
 
-        # Both polling tasks share this event loop and the asyncpg pool.
         async with asyncio.TaskGroup() as task_group:
             task_group.create_task(tgbot.run_polling())
             task_group.create_task(vkbot.run_polling())
