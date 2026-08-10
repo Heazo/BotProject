@@ -2,9 +2,14 @@
 
 from datetime import datetime, timedelta
 from TimetableProvider.DB_Manager import DB_Manager
+from config import Mess_Config, EmojisSetEnum
 
-async def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=None) -> list[str]:
+async def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=None, emojis_set: EmojisSetEnum = EmojisSetEnum.DEFAULT) -> list[str]:
 
+    if emojis_set == EmojisSetEnum.DEFAULT:
+        emoji_set = Mess_Config.default_emojis
+    elif emojis_set == EmojisSetEnum.NEW_YEAR:
+        emoji_set = Mess_Config.new_year_emojis
     #my_date = datetime.now()
     my_date = datetime(2026, 6, 8, 17, 30)
     # date = my_date.strftime("%d.%m.%Y")
@@ -38,30 +43,21 @@ async def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=Non
         return [f"⚠️ Произошла ошибка при получении расписания на {day_name} ({date_str}).\nПожалуйста, попробуйте позже."]
     else:
         if len(sessions) == 0:
-            return [f"📅 На {day_name} ({date_str}) занятий нет 🎉"]
+            return [f"{emoji_set.get('calendar')} На {day_name} ({date_str}) занятий нет 🎉"]
         else:
             rasp = []
-            num_emojis = {
-                "1": "1️⃣",
-                "2": "2️⃣",
-                "3": "3️⃣",
-                "4": "4️⃣",
-                "5": "5️⃣",
-                "6": "6️⃣",
-                "7": "7️⃣"
-            }
 
             for session in sessions:
-                num_type = num_emojis.get(session['num_session'], "▫️")
+                num_type = Mess_Config.num_emojis.get(session['num_session'], "▫️")
 
                 formatted_session = (
                     f"{num_type}  {session['time_session']}  [{session['kind_of_work']}]\n"
-                    f"   📖 {session['discipline']}\n"
-                    f"   🏫 {session['auditorium']}\n\n"
+                    f"{emoji_set.get('discipline')} {session['discipline']}\n"
+                    f"{emoji_set.get('auditorium')} {session['auditorium']}\n\n"
                 )
                 rasp.append(formatted_session)
 
-            header = f"📅 Расписание на {day_name} ({date_str}):\n\n"
+            header = f"{emoji_set.get('calendar')} Расписание на {day_name} ({date_str}):\n\n"
             return [header + "\n".join(rasp)]
     #
     #!db_rasp = None
@@ -81,10 +77,10 @@ async def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=Non
     #             break
     #!return db_rasp
 
-async def get_rasp_for_day(db_manager: DB_Manager, day_offset, group_num) -> list[str]:
-    return await create_unique_rasp(db_manager, day_offset, group_num)
+async def get_rasp_for_day(db_manager: DB_Manager, day_offset, group_num, emojis_set: EmojisSetEnum = EmojisSetEnum.DEFAULT) -> list[str]:
+    return await create_unique_rasp(db_manager, day_offset, group_num, emojis_set)
 
-async def get_rasp_for_date(db_manager: DB_Manager, date: datetime, group_num: str = None) -> list[str]:
+async def get_rasp_for_date(db_manager: DB_Manager, date: datetime, group_num: str = None, emojis_set: EmojisSetEnum = EmojisSetEnum.DEFAULT) -> list[str]:
     """
     Получить расписание на конкретную дату.
 
@@ -92,10 +88,17 @@ async def get_rasp_for_date(db_manager: DB_Manager, date: datetime, group_num: s
         db_manager: менеджер базы данных
         date: объект datetime с нужной датой
         group_num: номер группы
+        emojis_set: набор эмоджи для форматирования
 
     Returns:
         list[str]: расписание в виде списка строк
     """
+    if emojis_set == EmojisSetEnum.DEFAULT:
+        emoji_set = Mess_Config.default_emojis
+    elif emojis_set == EmojisSetEnum.NEW_YEAR:
+        emoji_set = Mess_Config.new_year_emojis
+    
+    
     date_str = date.strftime("%d.%m.%Y")
     sessions = await db_manager.getSessionsFromDB(date_str, group_num=group_num)
 
@@ -116,28 +119,19 @@ async def get_rasp_for_date(db_manager: DB_Manager, date: datetime, group_num: s
             f"⚠️ Произошла ошибка при получении расписания на {day_name} ({date_str}).\nПожалуйста, попробуйте позже."]
     else:
         if len(sessions) == 0:
-            return [f"📅 На {day_name} ({date_str}) занятий нет 🎉"]
+            return [f"{emoji_set.get('calendar')} На {day_name} ({date_str}) занятий нет 🎉"]
         else:
             rasp = []
-            num_emojis = {
-                "1": "1️⃣",
-                "2": "2️⃣",
-                "3": "3️⃣",
-                "4": "4️⃣",
-                "5": "5️⃣",
-                "6": "6️⃣",
-                "7": "7️⃣"
-            }
 
             for session in sessions:
-                num_type = num_emojis.get(session['num_session'], "▫️")
+                num_type = Mess_Config.num_emojis.get(session['num_session'], "▫️")
 
                 formatted_session = (
                     f"{num_type}  {session['time_session']}  [{session['kind_of_work']}]\n"
-                    f"   📖 {session['discipline']}\n"
-                    f"   🏫 {session['auditorium']}\n\n"
+                    f"{emoji_set.get('discipline')} {session['discipline']}\n"
+                    f"{emoji_set.get('auditorium')} {session['auditorium']}\n\n"
                 )
                 rasp.append(formatted_session)
 
-            header = f"📅 Расписание на {day_name} ({date_str}):\n\n"
+            header = f"{emoji_set.get('calendar')} Расписание на {day_name} ({date_str}):\n\n"
             return [header + "\n".join(rasp)]

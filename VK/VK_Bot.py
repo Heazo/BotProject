@@ -4,9 +4,11 @@ from vkbottle import Bot, Keyboard, Text
 from datetime import datetime, timedelta
 import json
 import logging
+from config import EmojisSetEnum, Mess_Config
 
 logger = logging.getLogger(__name__)
 
+selected_EmojisSet = EmojisSetEnum.DEFAULT  # Пока что глобально в файле, мб потом как нибудь по дате будет меняться либо для каждого человека отдельно исходя из БД
 
 class VKbot_class:
     def __init__(self, m_token: str, db_manager: DB_Manager):
@@ -15,7 +17,6 @@ class VKbot_class:
         self.db = db_manager
         logger.info("Initializing VK Bot")
         self._register_handlers()
-        self.find_group_message = "Пожалуйста, укажите номер группы.\nПример: /search 123456"
 
     async def sender(self, user_id: int, msg: str, keyboard=None) -> None:
         """Отправка сообщения с опциональной клавиатурой"""
@@ -31,9 +32,9 @@ class VKbot_class:
 
         group = await self.db.getUserGroup(str(user_id))
         if group:
-            msg = await get_rasp_for_day(self.db, day_offset=day_offset, group_num=group[0])
+            msg = await get_rasp_for_day(self.db, day_offset=day_offset, group_num=group[0], emojis_set=selected_EmojisSet)
         else:
-            msg = self.find_group_message
+            msg = Mess_Config.find_group_message
         if isinstance(msg, list):
             msg = "\n".join(str(item) for item in msg if item is not None)
 
@@ -52,9 +53,9 @@ class VKbot_class:
             target_week_start = start_of_week + timedelta(weeks=week_offset)
             target_date = target_week_start + timedelta(days=weekday)
 
-            msg = await get_rasp_for_date(self.db, target_date, group_num=group[0])
+            msg = await get_rasp_for_date(self.db, target_date, group_num=group[0], emojis_set=selected_EmojisSet)
         else:
-            msg = self.find_group_message
+            msg = Mess_Config.find_group_message
 
         if isinstance(msg, list):
             msg = "\n".join(str(item) for item in msg if item is not None)
@@ -64,7 +65,7 @@ class VKbot_class:
 
     def get_keyboard(self):
         keyboard = Keyboard(one_time=False, inline=True)
-        keyboard.add(Text("Начать"))
+        keyboard.add(Text(Mess_Config.start_message))
         keyboard.row()
         keyboard.add(Text("День недели", payload={"command": "weekday"}))
         keyboard.add(Text("Неделя", payload={"command": "week"}))
@@ -186,7 +187,7 @@ class VKbot_class:
         @self.bot.on.private_message(text=["начать", "Начать", "/start"])
         async def start_russian(message):
             kb = self.get_keyboard()
-            await message.answer("Привет! Выберите день для просмотра расписания:", keyboard=kb)
+            await message.answer(Mess_Config.start_menu_message, keyboard=kb)
 
         @self.bot.on.private_message(text="/search <group_num>")
         async def search_handler(message, group_num: str):
@@ -195,12 +196,12 @@ class VKbot_class:
             if result:
                 # После привязки группы тоже показываем клавиатуру
                 kb = self.get_keyboard()
-                await message.answer(f"Группа {group_num} успешно привязана! \n"
-                                     f"Теперь Вы можете получать расписание", keyboard=kb)
+                await message.answer(
+                    Mess_Config.group_linked_short_message.format(group_num=group_num),
+                    keyboard=kb,
+                )
             else:
-                await message.answer("Ошибка при привязке группы.\n"
-                    "Проверьте правильность номера группы.\n"
-                    "Если ошибка повторяется, обратитесь к администратору.")
+                await message.answer(Mess_Config.group_link_error_message)
 
         @self.bot.on.private_message(text=["Сегодня", "today", "/today"])
         async def today_command(message):
@@ -214,7 +215,7 @@ class VKbot_class:
         async def weekday_command(message):
             """Отправляет клавиатуру с днями недели"""
             kb = self.get_weekday_keyboard()
-            await message.answer("Выберите день недели:", keyboard=kb)
+            await message.answer(Mess_Config.choose_weekday_message, keyboard=kb)
 
         @self.bot.on.private_message(text=["Неделя", "week", "/week"])
         async def week_command(message):
@@ -222,7 +223,7 @@ class VKbot_class:
             kb = self.create_week_selection_keyboard()
 
             await message.answer(
-                "Выберите неделю:",
+                Mess_Config.choose_week_message,
                 keyboard=kb
             )
 
@@ -253,7 +254,7 @@ class VKbot_class:
                 week = int(payload["offset"])
 
                 await message.answer(
-                    "Выберите день:",
+                    Mess_Config.choose_day_message,
                     keyboard=self.create_day_selection_keyboard(week)
                 )
 
@@ -268,14 +269,14 @@ class VKbot_class:
             elif cmd == "weeks":
 
                 await message.answer(
-                    "Выберите неделю:",
+                    Mess_Config.choose_week_message,
                     keyboard=self.create_week_selection_keyboard()
                 )
 
             elif cmd == "back":
 
                 await message.answer(
-                    "Главное меню:",
+                    Mess_Config.main_menu_message,
                     keyboard=self.get_keyboard()
                 )
 
@@ -283,7 +284,7 @@ class VKbot_class:
         async def back_command(message):
             """Возврат в главное меню"""
             kb = self.get_keyboard()
-            await message.answer("Главное меню:", keyboard=kb)
+            await message.answer(Mess_Config.main_menu_message, keyboard=kb)
 
 
     def event_handler(self) -> None:

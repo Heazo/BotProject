@@ -10,7 +10,7 @@ A messanger bot for get individual lesson schedule.
 - sphinx
 - thefuzz
 
-## Installation
+## Installation :rocket:
 
 The project uses `pyproject.toml` as the dependency manifest:
 

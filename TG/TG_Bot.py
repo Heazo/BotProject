@@ -9,9 +9,11 @@ import logging
 from datetime import datetime, timedelta
 from TimetableProvider.TimetableCreator import get_rasp_for_day, get_rasp_for_date
 from TimetableProvider.DB_Manager import DB_Manager
+from config import EmojisSetEnum, Mess_Config
 
 logger = logging.getLogger(__name__)
 
+selected_EmojisSet = EmojisSetEnum.NEW_YEAR  #пока что глобално в файле, мб потом как нибудь по дате будет меняться либо для каждого человека отдельно исходя из БД
 
 # Определяем состояния для FSM
 class WeekSelectionStates(StatesGroup):
@@ -27,22 +29,24 @@ class TelegramBotClass:
         self.week_offset = 0  # Храним выбранную неделю
         logger.info("Initializing Telegram Bot")
         self._register_handlers()
-        self.find_group_message = "Пожалуйста, укажите номер группы.\nПример: /search 123456"
 
     async def set_commands(self) -> None:
         """Установка команд в меню бота"""
         commands = [
-            BotCommand(command="search", description="Привязать группу (пример: /search 123456)"),
-            BotCommand(command="today", description="Расписание на сегодня"),
-            BotCommand(command="tomorrow", description="Расписание на завтра"),
-            BotCommand(command="week", description="Выбрать неделю и день"),
-            BotCommand(command="monday", description="Расписание на понедельник"),
-            BotCommand(command="tuesday", description="Расписание на вторник"),
-            BotCommand(command="wednesday", description="Расписание на среду"),
-            BotCommand(command="thursday", description="Расписание на четверг"),
-            BotCommand(command="friday", description="Расписание на пятницу"),
-            BotCommand(command="saturday", description="Расписание на субботу"),
-            BotCommand(command="sunday", description="Расписание на воскресенье")
+            BotCommand(command="search", description=Mess_Config.find_group_message),
+            BotCommand(command="today", description=Mess_Config.today_description),
+            BotCommand(command="tomorrow", description=Mess_Config.tomorrow_description),
+            BotCommand(command="week", description=Mess_Config.week_description),
+            *[
+                BotCommand(command=command, description=description)
+                for command, description in zip(
+                    (
+                        "monday", "tuesday", "wednesday", "thursday",
+                        "friday", "saturday", "sunday",
+                    ),
+                    Mess_Config.weekday_descriptions,
+                )
+            ],
         ]
         await self.bot.set_my_commands(commands)
         logger.info("Commands set successfully")
@@ -57,9 +61,9 @@ class TelegramBotClass:
 
         group = await self.db.getUserGroup(str(user_id))
         if group:
-            msg = await get_rasp_for_day(self.db, day_offset=day_offset, group_num=group[0])
+            msg = await get_rasp_for_day(self.db, day_offset=day_offset, group_num=group[0], emojis_set=selected_EmojisSet)
         else:
-            msg = self.find_group_message
+            msg = Mess_Config.find_group_message
         if isinstance(msg, list):
             msg = "\n".join(str(item) for item in msg if item is not None)
         await self.sender(user_id, msg)
@@ -75,9 +79,9 @@ class TelegramBotClass:
             target_week_start = start_of_week + timedelta(weeks=week_offset)
             target_date = target_week_start + timedelta(days=weekday)
 
-            msg = await get_rasp_for_date(self.db, target_date, group_num=group[0])
+            msg = await get_rasp_for_date(self.db, target_date, group_num=group[0], emojis_set=selected_EmojisSet)
         else:
-            msg = self.find_group_message
+            msg = Mess_Config.find_group_message
 
         if isinstance(msg, list):
             msg = "\n".join(str(item) for item in msg if item is not None)
@@ -190,7 +194,7 @@ class TelegramBotClass:
 
         @self.dp.message(Command("start"))
         async def start_command(message: types.Message):
-            await message.answer("Привет",)
+            await message.answer(Mess_Config.start_message)
 
         # Обработчик команды /search с параметром
         @self.dp.message(Command("search"))
@@ -199,27 +203,16 @@ class TelegramBotClass:
             user_id = str(message.from_user.id)
 
             if not group_num:
-                await message.answer(
-                    "Пожалуйста, укажите номер группы.\n"
-                    "Пример: /search 1234"
-                )
+                await message.answer(Mess_Config.find_group_message)
                 return
 
             result = await db.insertUserAndGroup(user_id, group_num, "tg")
             if result:
                 await message.answer(
-                    f"Группа {group_num} успешно привязана!\n\n"
-                    "Теперь Вы можете получать расписание:\n"
-                    "• /today - на сегодня\n"
-                    "• /tomorrow - на завтра\n"
-                    "• /week - на неделю"
+                    Mess_Config.group_linked_message.format(group_num=group_num)
                 )
             else:
-                await message.answer(
-                    "Ошибка при привязке группы.\n"
-                    "Проверьте правильность номера группы.\n"
-                    "Если ошибка повторяется, обратитесь к администратору."
-                )
+                await message.answer(Mess_Config.group_link_error_message)
 
         # Обработчик команды /today
         @self.dp.message(Command("today"))
@@ -245,7 +238,7 @@ class TelegramBotClass:
             await state.set_state(WeekSelectionStates.selecting_week)
             keyboard = self.create_week_selection_keyboard(0)
             await message.answer(
-                "📅 Выберите неделю:",
+                Mess_Config.choose_week_message,
                 reply_markup=keyboard
             )
 
@@ -261,7 +254,7 @@ class TelegramBotClass:
 
                 keyboard = self.create_day_selection_keyboard(week_offset)
                 await callback.message.edit_text(
-                    f"📅 Выберите день недели:",
+                    Mess_Config.choose_day_message,
                     reply_markup=keyboard
                 )
                 await callback.answer()
@@ -275,7 +268,7 @@ class TelegramBotClass:
                 await state.set_state(WeekSelectionStates.selecting_week)
                 keyboard = self.create_week_selection_keyboard(0)
                 await callback.message.edit_text(
-                    "📅 Выберите неделю:",
+                    Mess_Config.choose_week_message,
                     reply_markup=keyboard
                 )
                 await callback.answer()
