@@ -91,6 +91,25 @@ class DB_Manager:
         except asyncpg.PostgresError as exc:
             logger.error("Ошибка БД: %s", exc)
             return None
+    
+    async def getUnselectedDisc(self, user_id: str) -> list[str] | None:
+        pool = await self._ensure_pool()
+        try:
+            async with pool.acquire() as connection:
+                rows = await connection.fetch(
+                    """
+                    SELECT ch.name FROM public.choiced_disciplines ch
+                    WHERE NOT EXISTS (
+                        SELECT 1
+                        FROM public.user_choiced_disciplines usr_ch
+                        WHERE usr_ch.user_id = $1 AND usr_ch.discipline_id = ch.id
+                    );
+                    """, user_id)
+                return [row["name"] for row in rows]
+        except asyncpg.PostgresError as exc:
+            logger.error("Ошибка БД: %s", exc)
+            return None
+        
 
     async def getLastUpdateForGroup(self, group_num: str) -> Any:
         if not group_num:
