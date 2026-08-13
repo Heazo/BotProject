@@ -1,15 +1,27 @@
 #Будет создавать индивидуальное расписание, обращаясь к DB_Manager
 
+#TODO: Навести порядок необходимо тут, а то тут какой то ужас и кринж
+
 from datetime import datetime, timedelta
 from TimetableProvider.DB_Manager import DB_Manager
 from config import Mess_Config, EmojisSetEnum
 
-async def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=None, emojis_set: EmojisSetEnum = EmojisSetEnum.DEFAULT) -> list[str]:
+async def delet_unnecessary_sess(session: dict, ch_discipls: list[str]) -> bool:
+    for ch_discipl in ch_discipls:
+        if ch_discipl in session['discipline']:
+            print("лишний предмет по выбору попался")
+            return True
+    return False
 
+async def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=None, emojis_set: EmojisSetEnum = EmojisSetEnum.DEFAULT, user_id: str = "931321821") -> list[str]:
+
+    #TODO: Возможно будет логичнее передавать словарь смайликов в аргументах метода
     if emojis_set == EmojisSetEnum.DEFAULT:
         emoji_set = Mess_Config.default_emojis
     elif emojis_set == EmojisSetEnum.NEW_YEAR:
         emoji_set = Mess_Config.new_year_emojis
+    
+    
     #my_date = datetime.now()
     my_date = datetime(2026, 6, 8, 17, 30)
     # date = my_date.strftime("%d.%m.%Y")
@@ -30,6 +42,10 @@ async def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=Non
     # else:
     #     sessions = db_manager.getSessionsFromDB(date_str, group_num=group_num)
     sessions = await db_manager.getSessionsFromDB(date_str, group_num=group_num)
+    
+    unsell_dists = None
+    if sessions != None:
+        unsell_dists = await db_manager.getUnselectedDisc(user_id)
 
 
     # Добавляем заголовок с датой
@@ -49,7 +65,13 @@ async def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=Non
 
             for session in sessions:
                 num_type = Mess_Config.num_emojis.get(session['num_session'], "▫️")
+                
+                if unsell_dists is not None:
+                    unnecessary = await delet_unnecessary_sess(session=session, ch_discipls=unsell_dists)
 
+                if unnecessary == True:
+                    continue
+                
                 formatted_session = (
                     f"{num_type}  {session['time_session']}  [{session['kind_of_work']}]\n"
                     f"{emoji_set.get('discipline')} {session['discipline']}\n"
@@ -77,10 +99,10 @@ async def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=Non
     #             break
     #!return db_rasp
 
-async def get_rasp_for_day(db_manager: DB_Manager, day_offset, group_num, emojis_set: EmojisSetEnum = EmojisSetEnum.DEFAULT) -> list[str]:
-    return await create_unique_rasp(db_manager, day_offset, group_num, emojis_set)
+async def get_rasp_for_day(db_manager: DB_Manager, day_offset, group_num, user_id: str = "931321821", emojis_set: EmojisSetEnum = EmojisSetEnum.DEFAULT) -> list[str]:
+    return await create_unique_rasp(db_manager, day_offset, group_num, emojis_set, user_id)
 
-async def get_rasp_for_date(db_manager: DB_Manager, date: datetime, group_num: str = None, emojis_set: EmojisSetEnum = EmojisSetEnum.DEFAULT) -> list[str]:
+async def get_rasp_for_date(db_manager: DB_Manager, date: datetime, group_num: str = None, emojis_set: EmojisSetEnum = EmojisSetEnum.DEFAULT, user_id: str = "931321821") -> list[str]:
     """
     Получить расписание на конкретную дату.
 
@@ -89,6 +111,7 @@ async def get_rasp_for_date(db_manager: DB_Manager, date: datetime, group_num: s
         date: объект datetime с нужной датой
         group_num: номер группы
         emojis_set: набор эмоджи для форматирования
+        user_id: ID пользователя
 
     Returns:
         list[str]: расписание в виде списка строк
@@ -101,6 +124,10 @@ async def get_rasp_for_date(db_manager: DB_Manager, date: datetime, group_num: s
     
     date_str = date.strftime("%d.%m.%Y")
     sessions = await db_manager.getSessionsFromDB(date_str, group_num=group_num)
+    
+    unsell_dists = None
+    if sessions != None:
+        unsell_dists = await db_manager.getUnselectedDisc(user_id)
 
     # Название дня недели
     weekdays_ru = {
@@ -126,6 +153,11 @@ async def get_rasp_for_date(db_manager: DB_Manager, date: datetime, group_num: s
             for session in sessions:
                 num_type = Mess_Config.num_emojis.get(session['num_session'], "▫️")
 
+                if unsell_dists is not None:
+                    unnecessary = await delet_unnecessary_sess(session=session, ch_discipls=unsell_dists)
+                    if unnecessary:
+                        continue
+
                 formatted_session = (
                     f"{num_type}  {session['time_session']}  [{session['kind_of_work']}]\n"
                     f"{emoji_set.get('discipline')} {session['discipline']}\n"
@@ -135,3 +167,4 @@ async def get_rasp_for_date(db_manager: DB_Manager, date: datetime, group_num: s
 
             header = f"{emoji_set.get('calendar')} Расписание на {day_name} ({date_str}):\n\n"
             return [header + "\n".join(rasp)]
+        
