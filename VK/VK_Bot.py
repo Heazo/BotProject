@@ -33,14 +33,13 @@ class VKbot_class:
         group = await self.db.getUserGroup(str(user_id))
         if group:
             msg = await get_rasp_for_day(self.db, day_offset=day_offset, group_num=group[0], emojis_set=selected_EmojisSet)
+            if isinstance(msg, list):
+                msg = "\n".join(str(item) for item in msg if item is not None)
+            kb = self.get_keyboard()
+            await self.sender(user_id, msg, kb)
         else:
             msg = Mess_Config.find_group_message
-        if isinstance(msg, list):
-            msg = "\n".join(str(item) for item in msg if item is not None)
-
-        # Отправляем расписание вместе с клавиатурой
-        kb = self.get_keyboard()
-        await self.sender(user_id, msg, kb)
+            await self.sender(user_id, msg)
 
     async def send_rasp_weekday(self, user_id: int, weekday: int, week_offset: int = 0) -> None:
         """Отправка расписания на конкретный день недели с учетом смещения недели"""
@@ -52,21 +51,17 @@ class VKbot_class:
             start_of_week = now - timedelta(days=now.weekday())
             target_week_start = start_of_week + timedelta(weeks=week_offset)
             target_date = target_week_start + timedelta(days=weekday)
-
             msg = await get_rasp_for_date(self.db, target_date, group_num=group[0], emojis_set=selected_EmojisSet)
+            if isinstance(msg, list):
+                msg = "\n".join(str(item) for item in msg if item is not None)
+            kb = self.get_keyboard()
+            await self.sender(user_id, msg, kb)
         else:
             msg = Mess_Config.find_group_message
-
-        if isinstance(msg, list):
-            msg = "\n".join(str(item) for item in msg if item is not None)
-
-        kb = self.get_keyboard()
-        await self.sender(user_id, msg, kb)
+            await self.sender(user_id, msg)
 
     def get_keyboard(self):
         keyboard = Keyboard(one_time=False, inline=True)
-        keyboard.add(Text(Mess_Config.start_message))
-        keyboard.row()
         keyboard.add(Text("День недели", payload={"command": "weekday"}))
         keyboard.add(Text("Неделя", payload={"command": "week"}))
         keyboard.row()
@@ -187,7 +182,7 @@ class VKbot_class:
         @self.bot.on.private_message(text=["начать", "Начать", "/start"])
         async def start_russian(message):
             kb = self.get_keyboard()
-            await message.answer(Mess_Config.start_menu_message, keyboard=kb)
+            await message.answer(Mess_Config.start_message, keyboard=kb)
 
         @self.bot.on.private_message(text="/search <group_num>")
         async def search_handler(message, group_num: str):

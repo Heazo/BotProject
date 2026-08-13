@@ -349,6 +349,29 @@ class DB_Manager:
                     best_match = row_dict
         return best_match if best_match and best_score >= min_score else None
 
+    async def removeUserDiscipline(
+            self, user_id: str, discipline_id: int
+    ) -> bool:
+        pool = await self._ensure_pool()
+
+        try:
+            async with pool.acquire() as connection:
+                result = await connection.execute(
+                    """
+                    DELETE FROM user_choiced_disciplines
+                    WHERE user_id = $1
+                      AND discipline_id = $2
+                    """,
+                    user_id,
+                    discipline_id,
+                )
+
+            return result == "DELETE 1"
+
+        except asyncpg.PostgresError as exc:
+            logger.error("Database error: %s", exc)
+            return False
+
     async def addChosenDisciplineForUser(
         self, user_id: str, discipline_name: str
     ) -> bool:

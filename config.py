@@ -42,11 +42,14 @@ class EmojisSetEnum(Enum):
 #TODO: Сделать словарь словарей эмоджи
 @dataclass(frozen=True)
 class Mess_Config:
-    start_message: str = "Привет!"
+    start_message: str = ("Привет!\n"
+                          "Если Вы ещё не привязали группу, сделайте это с помощью команды /search <номер_группы>")
+    find_group_description: str = "Привязать группу. Пример: /search 123456"
     start_menu_message: str = "Привет! Выберите день для просмотра расписания:"
     today_description: str = "Расписание на сегодня"
     tomorrow_description: str = "Расписание на завтра"
     week_description: str = "Выбрать неделю и день"
+    choices_description: str = "Мои предметы по выбору"
     weekday_descriptions: tuple[str, ...] = (
         "Расписание на понедельник",
         "Расписание на вторник",
@@ -80,7 +83,35 @@ class Mess_Config:
     main_menu_message: str = "Главное меню:"
     back_to_weeks_message: str = "Назад к неделям"
     back_message: str = "Назад"
-    
+    no_choice_disciplines_message: str = "У вас пока нет добавленных предметов по выбору."
+    my_choice_disciplines_message: str = "Мои предметы по выбору:"
+    enter_choice_discipline_message: str = "Введите название предмета по выбору:"
+    no_text_choice_discipline_error_message: str = "Пожалуйста, отправьте название предмета текстом."
+    empty_text_choice_discipline_error_message: str = "Название предмета не может быть пустым."
+    choice_discipline_not_found_message: str = (
+        "❌ Не удалось найти подходящий предмет.\n"
+        "Попробуйте написать название ещё раз."
+    )
+    choice_discipline_add_error_message: str = (
+        "Не удалось добавить предмет. Попробуйте позже."
+    )
+    delete_choice_discipline_message: str = (
+        "Выберите предмет, который хотите удалить:"
+    )
+    no_choice_disciplines_to_delete_message: str = (
+        "У вас нет предметов для удаления."
+    )
+    choice_discipline_not_found_for_delete_message: str = (
+        "Этот предмет отсутствует в вашем списке."
+    )
+    choice_discipline_delete_error_message: str = (
+        "Не удалось удалить предмет."
+    )
+    choice_discipline_invalid_id_message: str = (
+        "Некорректный идентификатор предмета."
+    )
+
+
     num_emojis = {
         "1": "1️⃣",
         "2": "2️⃣",

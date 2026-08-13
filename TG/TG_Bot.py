@@ -20,6 +20,9 @@ class WeekSelectionStates(StatesGroup):
     selecting_week = State()
     selecting_day = State()
 
+class ChoiceDisciplineStates(StatesGroup):
+    adding_discipline = State()
+
 class TelegramBotClass:
     def __init__(self, token: str, db_manager: DB_Manager):
         self.bot = Bot(token=token)
@@ -33,10 +36,11 @@ class TelegramBotClass:
     async def set_commands(self) -> None:
         """Установка команд в меню бота"""
         commands = [
-            BotCommand(command="search", description=Mess_Config.find_group_message),
+            BotCommand(command="search", description=Mess_Config.find_group_description),
             BotCommand(command="today", description=Mess_Config.today_description),
             BotCommand(command="tomorrow", description=Mess_Config.tomorrow_description),
             BotCommand(command="week", description=Mess_Config.week_description),
+            BotCommand(command="choices", description=Mess_Config.choices_description),
             *[
                 BotCommand(command=command, description=description)
                 for command, description in zip(
@@ -177,6 +181,65 @@ class TelegramBotClass:
 
         return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
+    def create_choice_disciplines_keyboard(self) -> InlineKeyboardMarkup:
+        return InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="Добавить предмет",
+                        callback_data="choice_add"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="Удалить предмет",
+                        callback_data="choice_delete"
+                    )
+                ],
+            ]
+        )
+
+    def create_delete_choice_keyboard(
+            self,
+            disciplines: list[dict]
+    ) -> InlineKeyboardMarkup:
+        keyboard = []
+
+        for discipline in disciplines:
+            keyboard.append([
+                InlineKeyboardButton(
+                    text=f"❌ {discipline['name']}",
+                    callback_data=f"choice_delete_{discipline['id']}"
+                )
+            ])
+
+        keyboard.append([
+            InlineKeyboardButton(
+                text="Назад",
+                callback_data="choice_back"
+            )
+        ])
+
+        return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+    @staticmethod
+    def format_choice_disciplines(
+            disciplines: list[dict]
+    ) -> str:
+        if not disciplines:
+            return (
+                Mess_Config.no_choice_disciplines_message
+            )
+
+        lines = [Mess_Config.my_choice_disciplines_message]
+
+        for index, discipline in enumerate(disciplines, start=1):
+            lines.append(
+                f"{index}. {discipline['name']}"
+            )
+
+        return "\n".join(lines)
+
     def _register_handlers(self) -> None:
         """Регистрация всех обработчиков"""
         
@@ -288,6 +351,272 @@ class TelegramBotClass:
 
                 # Очищаем состояние
                 await state.clear()
+
+        @self.dp.message(Command("choices"))
+        async def choices_command(message: types.Message):
+            user_id = str(message.from_user.id)
+
+            disciplines = await db.getUserDisciplines(user_id)
+
+            await message.answer(
+                self.format_choice_disciplines(disciplines),
+                reply_markup=self.create_choice_disciplines_keyboard()
+            )
+
+        # ============================================================
+        # ПРЕДМЕТЫ ПО ВЫБОРУ
+        # ============================================================
+
+        # Показать список предметов по выбору
+        @self.dp.message(
+            lambda message: (
+                message.text
+                and message.text.casefold()
+                == "мои предметы по выбору".casefold()
+            )
+        )
+        async def my_choice_disciplines(message: types.Message):
+            user_id = str(message.from_user.id)
+
+            disciplines = await db.getUserDisciplines(user_id)
+
+            await message.answer(
+                self.format_choice_disciplines(disciplines),
+                reply_markup=self.create_choice_disciplines_keyboard()
+            )
+
+
+        # ------------------------------------------------------------
+        # Нажатие "Добавить предмет"
+        # ------------------------------------------------------------
+
+        @self.dp.callback_query(
+            lambda callback: callback.data == "choice_add"
+        )
+        async def choice_add(
+            callback: types.CallbackQuery,
+            state: FSMContext
+        ):
+            await state.set_state(
+                ChoiceDisciplineStates.adding_discipline
+            )
+
+            await callback.message.answer(
+                Mess_Config.enter_choice_discipline_message
+            )
+
+            await callback.answer()
+
+
+        # ------------------------------------------------------------
+        # Пользователь вводит название предмета
+        # ------------------------------------------------------------
+
+        @self.dp.message(
+            StateFilter(ChoiceDisciplineStates.adding_discipline)
+        )
+        async def choice_add_discipline(
+            message: types.Message,
+            state: FSMContext
+        ):
+            if not message.text:
+                await message.answer(
+                    Mess_Config.no_text_choice_discipline_error_message
+                )
+                return
+
+            discipline_name = message.text.strip()
+
+            if not discipline_name:
+                await message.answer(
+                    Mess_Config.empty_text_choice_discipline_error_message
+                )
+                return
+
+            # Ищем предмет с учётом опечаток.
+            discipline = await db.find_best_discipline(
+                discipline_name,
+                min_score=75
+            )
+
+            if discipline is None:
+                await message.answer(
+                    Mess_Config.choice_discipline_not_found_message
+                )
+                return
+
+            user_id = str(message.from_user.id)
+
+            # Проверяем, не добавлен ли предмет ранее.
+            current_disciplines = await db.getUserDisciplines(
+                user_id
+            )
+
+            already_added = any(
+                item["id"] == discipline["id"]
+                for item in current_disciplines
+            )
+
+            if already_added:
+                await state.clear()
+
+                await message.answer(
+                    f"Предмет «{discipline['name']}» "
+                    "уже есть в вашем списке.",
+                    reply_markup=(
+                        self.create_choice_disciplines_keyboard()
+                    )
+                )
+                return
+
+            # Добавляем предмет пользователю.
+            success = await db.addUserDiscipline(
+                user_id,
+                discipline["id"]
+            )
+
+            if not success:
+                await state.clear()
+
+                await message.answer(
+                    Mess_Config.choice_discipline_add_error_message
+                )
+                return
+
+            await state.clear()
+
+            # Получаем обновлённый список.
+            disciplines = await db.getUserDisciplines(user_id)
+
+            await message.answer(
+                "Предмет "
+                f"«{discipline['name']}» добавлен.\n"
+                + self.format_choice_disciplines(disciplines),
+                reply_markup=self.create_choice_disciplines_keyboard()
+            )
+
+
+        # ------------------------------------------------------------
+        # Нажатие "Удалить предмет"
+        # ------------------------------------------------------------
+
+        @self.dp.callback_query(
+            lambda callback: callback.data == "choice_delete"
+        )
+        async def choice_delete(
+            callback: types.CallbackQuery
+        ):
+            user_id = str(callback.from_user.id)
+
+            disciplines = await db.getUserDisciplines(user_id)
+
+            if not disciplines:
+                await callback.answer(
+                    Mess_Config.no_choice_disciplines_to_delete_message,
+                    show_alert=True
+                )
+                return
+
+            await callback.message.edit_text(
+                Mess_Config.delete_choice_discipline_message,
+                reply_markup=(
+                    self.create_delete_choice_keyboard(disciplines)
+                )
+            )
+
+            await callback.answer()
+
+
+        # ------------------------------------------------------------
+        # Удаление конкретного предмета
+        # ------------------------------------------------------------
+
+        @self.dp.callback_query(
+            lambda callback: (
+                callback.data
+                and callback.data.startswith("choice_delete_")
+            )
+        )
+        async def choice_delete_discipline(
+            callback: types.CallbackQuery
+        ):
+            user_id = str(callback.from_user.id)
+
+            try:
+                discipline_id = int(
+                    callback.data.split("_")[-1]
+                )
+            except (ValueError, AttributeError):
+                await callback.answer(
+                    Mess_Config.choice_discipline_invalid_id_message,
+                    show_alert=True
+                )
+                return
+
+            # Проверяем, что предмет принадлежит пользователю.
+            disciplines = await db.getUserDisciplines(user_id)
+
+            discipline = next(
+                (
+                    item
+                    for item in disciplines
+                    if item["id"] == discipline_id
+                ),
+                None
+            )
+
+            if discipline is None:
+                await callback.answer(
+                    Mess_Config.choice_discipline_not_found_for_delete_message,
+                    show_alert=True
+                )
+                return
+
+            success = await db.removeUserDiscipline(
+                user_id,
+                discipline_id
+            )
+
+            if not success:
+                await callback.answer(
+                    Mess_Config.choice_discipline_delete_error_message,
+                    show_alert=True
+                )
+                return
+
+            # Получаем обновлённый список.
+            disciplines = await db.getUserDisciplines(user_id)
+
+            await callback.message.edit_text(
+                self.format_choice_disciplines(disciplines),
+                reply_markup=self.create_choice_disciplines_keyboard()
+            )
+
+            await callback.answer(
+                f"Предмет «{discipline['name']}» удалён."
+            )
+
+
+        # ------------------------------------------------------------
+        # Назад из меню удаления
+        # ------------------------------------------------------------
+
+        @self.dp.callback_query(
+            lambda callback: callback.data == "choice_back"
+        )
+        async def choice_back(
+            callback: types.CallbackQuery
+        ):
+            user_id = str(callback.from_user.id)
+
+            disciplines = await db.getUserDisciplines(user_id)
+
+            await callback.message.edit_text(
+                self.format_choice_disciplines(disciplines),
+                reply_markup=self.create_choice_disciplines_keyboard()
+            )
+
+            await callback.answer()
 
     async def run_polling(self) -> None:
         """Запуск бота в режиме polling"""
