@@ -85,6 +85,8 @@ class Mess_Config:
     back_message: str = "Назад"
     no_choice_disciplines_message: str = "У вас пока нет добавленных предметов по выбору."
     my_choice_disciplines_message: str = "Мои предметы по выбору:"
+    how_add_and_remove_disciplines_message: str = ("Чтобы добавить дисциплину по выбору, используйте команду /add <дисциплина>,\n"
+                                                   "а чтобы удалить - /remove <дисциплина>.")
     enter_choice_discipline_message: str = "Введите название предмета по выбору:"
     no_text_choice_discipline_error_message: str = "Пожалуйста, отправьте название предмета текстом."
     empty_text_choice_discipline_error_message: str = "Название предмета не может быть пустым."
