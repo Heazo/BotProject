@@ -65,7 +65,7 @@ class TelegramBotClass:
 
         group = await self.db.getUserGroup(str(user_id))
         if group:
-            msg = await get_rasp_for_day(self.db, day_offset=day_offset, group_num=group[0], emojis_set=selected_EmojisSet)
+            msg = await get_rasp_for_day(self.db, day_offset=day_offset, group_num=group[0], emojis_set=selected_EmojisSet, user_id=str(user_id))
         else:
             msg = Mess_Config.find_group_message
         if isinstance(msg, list):
@@ -83,7 +83,7 @@ class TelegramBotClass:
             target_week_start = start_of_week + timedelta(weeks=week_offset)
             target_date = target_week_start + timedelta(days=weekday)
 
-            msg = await get_rasp_for_date(self.db, target_date, group_num=group[0], emojis_set=selected_EmojisSet)
+            msg = await get_rasp_for_date(self.db, target_date, group_num=group[0], emojis_set=selected_EmojisSet, user_id=str(user_id))
         else:
             msg = Mess_Config.find_group_message
 

@@ -13,7 +13,7 @@ async def delet_unnecessary_sess(session: dict, ch_discipls: list[str]) -> bool:
             return True
     return False
 
-async def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=None, emojis_set: EmojisSetEnum = EmojisSetEnum.DEFAULT, user_id: str = "931321821") -> list[str]:
+async def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=None, emojis_set: EmojisSetEnum = EmojisSetEnum.DEFAULT, user_id: str = None) -> list[str]:
 
     #TODO: Возможно будет логичнее передавать словарь смайликов в аргументах метода
     if emojis_set == EmojisSetEnum.DEFAULT:
@@ -45,7 +45,10 @@ async def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=Non
     
     unsell_dists = None
     if sessions != None:
+        print(f"user_id для getUnselectedDisc: '{user_id}'")
         unsell_dists = await db_manager.getUnselectedDisc(user_id)
+        print(f"unsell_dists: {unsell_dists}")
+        print(unsell_dists)
 
 
     # Добавляем заголовок с датой
@@ -99,10 +102,10 @@ async def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=Non
     #             break
     #!return db_rasp
 
-async def get_rasp_for_day(db_manager: DB_Manager, day_offset, group_num, user_id: str = "931321821", emojis_set: EmojisSetEnum = EmojisSetEnum.DEFAULT) -> list[str]:
+async def get_rasp_for_day(db_manager: DB_Manager, day_offset, group_num, emojis_set: EmojisSetEnum = EmojisSetEnum.DEFAULT, user_id: str = None,) -> list[str]:
     return await create_unique_rasp(db_manager, day_offset, group_num, emojis_set, user_id)
 
-async def get_rasp_for_date(db_manager: DB_Manager, date: datetime, group_num: str = None, emojis_set: EmojisSetEnum = EmojisSetEnum.DEFAULT, user_id: str = "931321821") -> list[str]:
+async def get_rasp_for_date(db_manager: DB_Manager, date: datetime, group_num: str = None, emojis_set: EmojisSetEnum = EmojisSetEnum.DEFAULT, user_id: str = None) -> list[str]:
     """
     Получить расписание на конкретную дату.
 
