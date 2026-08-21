@@ -45,10 +45,7 @@ async def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=Non
     
     unsell_dists = None
     if sessions != None:
-        print(f"user_id для getUnselectedDisc: '{user_id}'")
         unsell_dists = await db_manager.getUnselectedDisc(user_id)
-        print(f"unsell_dists: {unsell_dists}")
-        print(unsell_dists)
 
 
     # Добавляем заголовок с датой

@@ -70,7 +70,7 @@ class TelegramBotClass:
             msg = Mess_Config.find_group_message
         if isinstance(msg, list):
             msg = "\n".join(str(item) for item in msg if item is not None)
-        await self.sender(user_id, msg)
+        await self._send_long_message(user_id, msg)
 
     async def send_rasp_weekday(self, user_id: int, weekday: int, week_offset: int = 0) -> None:
         """Отправка расписания на конкретный день недели с учетом смещения недели"""
@@ -89,7 +89,46 @@ class TelegramBotClass:
 
         if isinstance(msg, list):
             msg = "\n".join(str(item) for item in msg if item is not None)
-        await self.sender(user_id, msg)
+        await self._send_long_message(user_id, msg)
+
+    async def _send_long_message(self, user_id: int, text: str, max_len: int = 4096):
+        """Внутренний метод для отправки длинных сообщений"""
+        if len(text) <= max_len:
+            await self.bot.send_message(user_id, text)
+            return
+
+        lines = text.split('\n')
+        parts = []
+        current_part = ""
+
+        for line in lines:
+            if len(line) > max_len:
+                if current_part:
+                    parts.append(current_part)
+                    current_part = ""
+                for chunk in [line[i:i + max_len] for i in range(0, len(line), max_len)]:
+                    parts.append(chunk)
+                continue
+
+            if len(current_part) + len(line) + 1 <= max_len:
+                current_part += line + "\n"
+            else:
+                parts.append(current_part.strip())
+                current_part = line + "\n"
+
+        if current_part:
+            parts.append(current_part.strip())
+
+        total = len(parts)
+        for i, part in enumerate(parts, 1):
+            if total > 1:
+                if i == 1:
+                    part = f"{part}\n\n📄 Часть {i}/{total}"
+                else:
+                    part = f"📄 Часть {i}/{total}\n{'-' * 20}\n\n{part}"
+
+            await self.bot.send_message(user_id, part)
+            await asyncio.sleep(0.3)
 
     def create_week_selection_keyboard(self, current_week_offset: int = 0) -> InlineKeyboardMarkup:
         """Создание клавиатуры для выбора недели"""
