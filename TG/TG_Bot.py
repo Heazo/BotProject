@@ -13,7 +13,7 @@ from config import EmojisSetEnum, Mess_Config
 
 logger = logging.getLogger(__name__)
 
-selected_EmojisSet = EmojisSetEnum.NEW_YEAR  #пока что глобално в файле, мб потом как нибудь по дате будет меняться либо для каждого человека отдельно исходя из БД
+selected_EmojisSet = EmojisSetEnum.DEFAULT  #пока что глобално в файле, мб потом как нибудь по дате будет меняться либо для каждого человека отдельно исходя из БД
 
 # Определяем состояния для FSM
 class WeekSelectionStates(StatesGroup):
@@ -148,7 +148,7 @@ class TelegramBotClass:
             if week_num == 0:
                 week_label = f"🔵 Текущая неделя"
             else:
-                week_label = f"📅 {start_str} - {end_str}"
+                week_label = f"{start_str} - {end_str}"
 
             week_options.append((week_label, week_num))
 
@@ -259,6 +259,18 @@ class TelegramBotClass:
             )
         ])
 
+        return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+    def create_cancel_keyboard(self) -> InlineKeyboardMarkup:
+        """Создает клавиатуру с кнопкой отмены"""
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    text="Отмена",
+                    callback_data="cancel_adding"
+                )
+            ]
+        ]
         return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
     @staticmethod
@@ -441,7 +453,8 @@ class TelegramBotClass:
             )
 
             await callback.message.answer(
-                Mess_Config.enter_choice_discipline_message
+                Mess_Config.enter_choice_discipline_message,
+                reply_markup=self.create_cancel_keyboard()
             )
 
             await callback.answer()
@@ -460,7 +473,8 @@ class TelegramBotClass:
         ):
             if not message.text:
                 await message.answer(
-                    Mess_Config.no_text_choice_discipline_error_message
+                    Mess_Config.no_text_choice_discipline_error_message,
+                    reply_markup=self.create_cancel_keyboard()
                 )
                 return
 
@@ -468,7 +482,8 @@ class TelegramBotClass:
 
             if not discipline_name:
                 await message.answer(
-                    Mess_Config.empty_text_choice_discipline_error_message
+                    Mess_Config.empty_text_choice_discipline_error_message,
+                    reply_markup=self.create_cancel_keyboard()
                 )
                 return
 
@@ -480,7 +495,8 @@ class TelegramBotClass:
 
             if discipline is None:
                 await message.answer(
-                    Mess_Config.choice_discipline_not_found_message
+                    Mess_Config.choice_discipline_not_found_message,
+                    reply_markup=self.create_cancel_keyboard()
                 )
                 return
 
@@ -656,6 +672,23 @@ class TelegramBotClass:
             )
 
             await callback.answer()
+
+        # ------------------------------------------------------------
+        # Назад из процесса ввода предмета
+        # ------------------------------------------------------------
+
+        @self.dp.callback_query(
+            lambda callback: callback.data == "cancel_adding"
+        )
+        async def cancel_adding_discipline(
+                callback: types.CallbackQuery,
+                state: FSMContext
+        ):
+            # Очищаем состояние
+            await state.clear()
+            await callback.message.answer("Добавление отменено")
+
+
 
     async def run_polling(self) -> None:
         """Запуск бота в режиме polling"""

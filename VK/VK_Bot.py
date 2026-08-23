@@ -211,7 +211,7 @@ class VKbot_class:
     def _register_handlers(self) -> None:
         db = self.db
 
-        @self.bot.on.private_message(text=["начать", "Начать", "/start"])
+        @self.bot.on.private_message(text=["Привет", "привет", "начать", "Начать", "/start"])
         async def start_russian(message):
             kb = self.get_keyboard()
             await message.answer(Mess_Config.start_message, keyboard=kb)
@@ -323,7 +323,8 @@ class VKbot_class:
 
             await message.answer(
                 f"Предмет «{discipline['name']}» добавлен.\n"
-                + self.format_choice_disciplines(disciplines)
+                + self.format_choice_disciplines(disciplines),
+                keyboard=self.get_back_button_keyboard()
             )
 
         @self.bot.on.private_message(text="/remove <discipline>")
@@ -370,6 +371,7 @@ class VKbot_class:
             await message.answer(
                 f"Предмет «{found_discipline['name']}» удалён.\n"
                 + self.format_choice_disciplines(disciplines),
+                keyboard=self.get_back_button_keyboard()
             )
 
         @self.bot.on.private_message(text=["Назад", "back", "/back"])
