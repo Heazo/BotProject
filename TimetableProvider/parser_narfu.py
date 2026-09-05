@@ -127,8 +127,10 @@ class ParserNARFU:
             return None, ""
 
     def find_groups(self, url = "https://ruz.narfu.ru/")->list[Group]:       #-> list[Group]
+        logger.info("Start find_groups()")
         soup, html_result = self.get_access(url)
         if soup is None:
+            logger.error("soup is None in find_groups()")
             return []
 
         #institutions = soup.find_all('div', {"class": "hidden-xs col-sm-4 col-md-3 institution_button"})
@@ -170,6 +172,8 @@ class ParserNARFU:
 
                 group_num = all_info.find("span", {"class": "number"}).text.strip()     #.text.split()[0].strip()
 
+                speciality = None
+                
                 if all_info:
                     for content in all_info.contents:
                         if isinstance(content, str): 
@@ -177,7 +181,7 @@ class ParserNARFU:
                             if text:
                                 speciality = ' '.join(text.split())
                                 break
-                if not speciality:
+                if speciality is None:
                     speciality = ""
                 
                 profile = ""

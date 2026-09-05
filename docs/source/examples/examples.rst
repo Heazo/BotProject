@@ -21,7 +21,7 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. code-block:: python
 
-    groups2 = db_manager.getGroupsFromDB()
+    groups2 = await db_manager.getGroupsFromDB()
     for group in groups2:
         print(f"{group.speciality} ({group.group_num}): {group.url}")
 
@@ -30,7 +30,7 @@
 Используется для записи новых пользователей в БД, или изменения группы пользователя
 .. code-block:: python
 
-    db_manager.insertUserAndGroup("Test", "151412")
+    await db_manager.insertUserAndGroup("Test", "151412")
 
 Получаем расписание на определенную дату
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -40,7 +40,7 @@
     my_date = datetime(2026, 6, 21)
     date = my_date.strftime("%d.%m.%Y")
     print("Дата: ",date)
-    sessions = db_manager.getSessionsFromDB(date)
+    sessions = await db_manager.getSessionsFromDB(date)
     if sessions is not None:
         for session in sessions:
             print(session["time_session"], "\n", session["num_session"], ". ", session["kind_of_work"], "\n", session["discipline"], "\n", session["auditorium"], "\n=============================================", sep="")
@@ -59,14 +59,14 @@
 
     #Получаем все группы с сайта и записываем их в БД
     groups = parser.find_groups()
-    db_manager.insertGroups(groups)
+    await db_manager.insertGroups(groups)
 
 Получаем расспинание одной из групп и записываем в базу данных
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. code-block:: python
 
     sessions = parser.get_all_rasp("https://ruz.narfu.ru/?timetable&group=19439")
-    db_manager.insertSessions(sessions)
+    await db_manager.insertSessions(sessions)
 
 Пример того как можно выводить полученные пары в консоль
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -107,9 +107,9 @@
 .. code-block:: python
 
     #Сделать проверку на то что ничего не нашлось, и тогда напишем об этом пользователю
-    #disp = "Имструменты анализа данных"
-    #res = db_manager.find_best_discipline(disp)
-    #db_manager.addUserDiscipline("931321821", res['id'])
-    #disciplines = db_manager.getUserDisciplines("931321821")
-    #print(disciplines[0]["name"])
-    #print(disciplines[1]["name"])
+    disp = "Имструменты анализа данных"
+    res = db_manager.find_best_discipline(disp)
+    db_manager.addUserDiscipline("931321821", res['id'])
+    disciplines = db_manager.getUserDisciplines("931321821")
+    print(disciplines[0]["name"])
+    print(disciplines[1]["name"])

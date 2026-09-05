@@ -3,13 +3,18 @@
 #TODO: Навести порядок необходимо тут, а то тут какой то ужас и кринж
 
 from datetime import datetime, timedelta
+import logging
+
 from TimetableProvider.DB_Manager import DB_Manager
 from config import Mess_Config, EmojisSetEnum
+from TimetableProvider.parser_narfu import ParserNARFU
+
+logger = logging.getLogger(__name__)
 
 async def delet_unnecessary_sess(session: dict, ch_discipls: list[str]) -> bool:
     for ch_discipl in ch_discipls:
         if ch_discipl in session['discipline']:
-            print("лишний предмет по выбору попался")
+            logger.info("лишний предмет по выбору попался")
             return True
     return False
 
@@ -22,26 +27,31 @@ async def create_unique_rasp(db_manager: DB_Manager, day_offset=0, group_num=Non
         emoji_set = Mess_Config.new_year_emojis
     
     
-    #my_date = datetime.now()
-    my_date = datetime(2026, 6, 8, 17, 30)
+    my_date = datetime.now()
+    #my_date = datetime(2026, 6, 8, 17, 30)
     # date = my_date.strftime("%d.%m.%Y")
     target_date = my_date + timedelta(days=day_offset)
     date_str = target_date.strftime("%d.%m.%Y")
     
+    local_now = datetime.now().astimezone()
+    local_tz = local_now.tzinfo # Вот часовой пояс вашей машины
+    my_date = my_date.replace(tzinfo=local_tz)
+    
     #Сначала проверим дату последнего обновления расписания в базе данных, если обновлений давно небыло, парсим заново
-    #Не удалять! Раскомментировать когда появится росписание на сайте!
-    # parser = ParserNARFU()
-    # last_update = db_manager.getLastUpdateForGroup(group_num)
-    # if last_update is None:
-    #     sessions = parser.get_all_rasp(db_manager.getURLForGroup(group_num))
-    #     db_manager.insertSessions(sessions)     ##А если parser.get_all_rasp() выдаст None???   #Сделать отправку отчёта если None
-    # elif my_date - last_update >= timedelta(hours=6):
-    #     sessions = parser.get_all_rasp(db_manager.getURLForGroup(group_num))
-    #     if sessions is not None:
-    #         db_manager.replaceSessionsForGroup(group_num, sessions)
-    # else:
-    #     sessions = db_manager.getSessionsFromDB(date_str, group_num=group_num)
-    sessions = await db_manager.getSessionsFromDB(date_str, group_num=group_num)
+    parser = ParserNARFU()
+    last_update = await db_manager.getLastUpdateForGroup(group_num)
+    if last_update is None:
+        logger.info("Парсим новое расписание для группы %d, для пользователя %s", group_num, user_id)
+        sessions = parser.get_all_rasp(await db_manager.getURLForGroup(group_num))
+        await db_manager.insertSessions(sessions)     ##А если parser.get_all_rasp() выдаст None???   #Сделать отправку отчёта если None
+    elif my_date - last_update >= timedelta(hours=6):
+        logger.info("Парсим новое расписание для группы %d, для пользователя %s", group_num, user_id)
+        sessions = parser.get_all_rasp(await db_manager.getURLForGroup(group_num))
+        if sessions is not None:
+            await db_manager.replaceSessionsForGroup(group_num, sessions)
+    else:
+        sessions = await db_manager.getSessionsFromDB(date_str, group_num=group_num)
+    #sessions = await db_manager.getSessionsFromDB(date_str, group_num=group_num)
     
     unsell_dists = None
     if sessions != None:
@@ -123,6 +133,26 @@ async def get_rasp_for_date(db_manager: DB_Manager, date: datetime, group_num: s
     
     
     date_str = date.strftime("%d.%m.%Y")
+    
+    my_date = datetime.now()    
+    local_now = datetime.now().astimezone()
+    local_tz = local_now.tzinfo # Вот часовой пояс вашей машины
+    my_date = my_date.replace(tzinfo=local_tz)
+    
+    parser = ParserNARFU()
+    last_update = await db_manager.getLastUpdateForGroup(group_num)
+    if last_update is None:
+        logger.info("Парсим новое расписание для группы %d, для пользователя %s", group_num, user_id)
+        sessions = parser.get_all_rasp(await db_manager.getURLForGroup(group_num))
+        await db_manager.insertSessions(sessions)     ##А если parser.get_all_rasp() выдаст None???   #Сделать отправку отчёта если None
+    elif my_date - last_update >= timedelta(hours=6):
+        logger.info("Парсим новое расписание для группы %d, для пользователя %s", group_num, user_id)
+        sessions = parser.get_all_rasp( await db_manager.getURLForGroup(group_num))
+        if sessions is not None:
+            await db_manager.replaceSessionsForGroup(group_num, sessions)
+    else:
+        sessions = await db_manager.getSessionsFromDB(date_str, group_num=group_num)
+    
     sessions = await db_manager.getSessionsFromDB(date_str, group_num=group_num)
     
     unsell_dists = None

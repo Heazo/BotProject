@@ -77,8 +77,8 @@ class TelegramBotClass:
 
         group = await self.db.getUserGroup(str(user_id))
         if group:
-            #datetime.now()
-            now = datetime(2026, 6, 8)
+            now = datetime.now()
+            #now = datetime(2026, 6, 8)
             start_of_week = now - timedelta(days=now.weekday())
             target_week_start = start_of_week + timedelta(weeks=week_offset)
             target_date = target_week_start + timedelta(days=weekday)
@@ -136,8 +136,8 @@ class TelegramBotClass:
         week_options = []
         for i in range(6):
             week_num = current_week_offset + i
-            # datetime.now()
-            now = datetime(2026, 6, 8)
+            now = datetime.now()
+            #now = datetime(2026, 6, 8)
             start_of_week = now - timedelta(days=now.weekday())
             week_start = start_of_week + timedelta(weeks=week_num)
             week_end = week_start + timedelta(days=6)
@@ -166,8 +166,8 @@ class TelegramBotClass:
     def create_day_selection_keyboard(self, week_offset: int) -> InlineKeyboardMarkup:
         """Создание клавиатуры для выбора дня недели после выбора недели"""
         
-        # datetime.now()
-        now = datetime(2026, 6, 8)
+        now = datetime.now()
+        #now = datetime(2026, 6, 8)
         start_of_week = now - timedelta(days=now.weekday())
         target_week_start = start_of_week + timedelta(weeks=week_offset)
 
