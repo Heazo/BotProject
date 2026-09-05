@@ -293,8 +293,6 @@ class TelegramBotClass:
 
     def _register_handlers(self) -> None:
         """Регистрация всех обработчиков"""
-        
-        db = self.db
 
         weekday_commands = {
             "monday": 0,
@@ -320,7 +318,7 @@ class TelegramBotClass:
                 await message.answer(Mess_Config.find_group_message)
                 return
 
-            result = await db.insertUserAndGroup(user_id, group_num, "tg")
+            result = await self.db.insertUserAndGroup(user_id, group_num, "tg")
             if result:
                 await message.answer(
                     Mess_Config.group_linked_message.format(group_num=group_num)
@@ -407,7 +405,7 @@ class TelegramBotClass:
         async def choices_command(message: types.Message):
             user_id = str(message.from_user.id)
 
-            disciplines = await db.getUserDisciplines(user_id)
+            disciplines = await self.db.getUserDisciplines(user_id)
 
             await message.answer(
                 self.format_choice_disciplines(disciplines),
@@ -429,7 +427,7 @@ class TelegramBotClass:
         async def my_choice_disciplines(message: types.Message):
             user_id = str(message.from_user.id)
 
-            disciplines = await db.getUserDisciplines(user_id)
+            disciplines = await self.db.getUserDisciplines(user_id)
 
             await message.answer(
                 self.format_choice_disciplines(disciplines),
@@ -488,7 +486,7 @@ class TelegramBotClass:
                 return
 
             # Ищем предмет с учётом опечаток.
-            discipline = await db.find_best_discipline(
+            discipline = await self.db.find_best_discipline(
                 discipline_name,
                 min_score=75
             )
@@ -503,7 +501,7 @@ class TelegramBotClass:
             user_id = str(message.from_user.id)
 
             # Проверяем, не добавлен ли предмет ранее.
-            current_disciplines = await db.getUserDisciplines(
+            current_disciplines = await self.db.getUserDisciplines(
                 user_id
             )
 
@@ -525,7 +523,7 @@ class TelegramBotClass:
                 return
 
             # Добавляем предмет пользователю.
-            success = await db.addUserDiscipline(
+            success = await self.db.addUserDiscipline(
                 user_id,
                 discipline["id"]
             )
@@ -541,7 +539,7 @@ class TelegramBotClass:
             await state.clear()
 
             # Получаем обновлённый список.
-            disciplines = await db.getUserDisciplines(user_id)
+            disciplines = await self.db.getUserDisciplines(user_id)
 
             await message.answer(
                 "Предмет "
@@ -563,7 +561,7 @@ class TelegramBotClass:
         ):
             user_id = str(callback.from_user.id)
 
-            disciplines = await db.getUserDisciplines(user_id)
+            disciplines = await self.db.getUserDisciplines(user_id)
 
             if not disciplines:
                 await callback.answer(
@@ -609,7 +607,7 @@ class TelegramBotClass:
                 return
 
             # Проверяем, что предмет принадлежит пользователю.
-            disciplines = await db.getUserDisciplines(user_id)
+            disciplines = await self.db.getUserDisciplines(user_id)
 
             discipline = next(
                 (
@@ -627,7 +625,7 @@ class TelegramBotClass:
                 )
                 return
 
-            success = await db.removeUserDiscipline(
+            success = await self.db.removeUserDiscipline(
                 user_id,
                 discipline_id
             )
@@ -640,7 +638,7 @@ class TelegramBotClass:
                 return
 
             # Получаем обновлённый список.
-            disciplines = await db.getUserDisciplines(user_id)
+            disciplines = await self.db.getUserDisciplines(user_id)
 
             await callback.message.edit_text(
                 self.format_choice_disciplines(disciplines),
@@ -664,7 +662,7 @@ class TelegramBotClass:
         ):
             user_id = str(callback.from_user.id)
 
-            disciplines = await db.getUserDisciplines(user_id)
+            disciplines = await self.db.getUserDisciplines(user_id)
 
             await callback.message.edit_text(
                 self.format_choice_disciplines(disciplines),
@@ -688,16 +686,8 @@ class TelegramBotClass:
             await state.clear()
             await callback.message.answer("Добавление отменено")
 
-
-
     async def run_polling(self) -> None:
         """Запуск бота в режиме polling"""
-        
-        await self.set_commands()  # Устанавливаем команды ПЕРЕД запуском
+        await self.set_commands()
         logger.info("Bot started polling")
-        await self.dp.start_polling(self.bot)
-
-    def run(self) -> None:
-        """Синхронная обёртка для запуска"""
-        
-        asyncio.run(self.run_polling())
+        await self.dp.start_polling(self.bot, allowed_updates=["message", "callback_query", "inline_query"])
